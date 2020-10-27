@@ -2,7 +2,7 @@
 """
 Created on Tue Oct 27 22:33:57 2020
 
-@author: Jérémie Stym-Popper
+@author: Jérémie Stym-Popper (prise sur regardscitoyens)
 """
 
 
