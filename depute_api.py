@@ -1,8 +1,10 @@
 # -*- coding: utf-8 -*-
 """
 Created on Tue Oct 27 22:33:57 2020
-
 @author: Jérémie Stym-Popper (prise sur regardscitoyens)
+
+Il s'agit du code permettant d'implémenter le 'cpc-api' manuellement. Cette API permet d'avoir accès à l'ensemble des députés et des sénateurs 
+(ainsi que leur profil et leurs caractéristiques) sur les sites nosdeputes.fr et nossenateurs.fr
 """
 
 
