@@ -78,6 +78,24 @@ class CPCApi(object):
         # Temporary return csv raw data
         url = '%s/recherche/%s?page=%s&format=%s' % (self.base_url, q, page, 'csv')
         return requests.get(url).content
+    
+    def interventions(self, dep_name):
+        name = self.search_parlementaires(dep_name)[0][0]['nom']
+        dep_intervention = []
+        pattern = "(?<=Permalien)" + name + ".*Voir tous les commentaires"
+        for num_txt in range(5000,5325):
+            url = "https://www.nosdeputes.fr/15/seance/%s" % (str(num_txt))
+            source = requests.get(url)
+            source.encoding = source.apparent_encoding
+            page = bs4.BeautifulSoup(source.text, "lxml")
+            intervention = page.find_all("div", {"class":"intervention"})
+
+            for parole in intervention:
+                x = re.findall(pattern, parole.get_text(), flags=re.S)
+                dep_intervention += x
+        
+        return dep_intervention
+
 
     @memoize
     def parlementaires(self, active=None):
