@@ -12,7 +12,7 @@ import requests
 import warnings
 import re
 import bs4
-import time
+import unidecode
 from urllib import request
 
 
@@ -95,6 +95,19 @@ class CPCApi(object):
             dep_intervention += x
 
         return dep_intervention
+    
+    def interventions2(self, dep_name):
+        name = self.search_parlementaires(dep_name)[0][0]["nom"]
+        name_pattern = re.sub(' ', '+', unidecode.unidecode(name.lower()))
+        dep_intervention = []
+        url = "https://www.nosdeputes.fr/recherche?object_name=Intervention&tag=parlementaire%3D{0}&sort=1".format(name_pattern)
+        source = request.urlopen(url).read()            
+        page = bs4.BeautifulSoup(source, "lxml")
+        for x in page.find_all('p', {'class' : 'content'}):
+            dep_intervention += x
+
+        return dep_intervention
+            
 
         
     
