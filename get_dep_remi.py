@@ -61,10 +61,32 @@ def stockintervention(groupe):
     
     return interventions_df
 
+
+deputies_df.groupby('groupe_sigle')['nom'].count()
+
 LREM_inter_df = stockintervention('LREM')
 LREM_inter_df
 
-
 path_csv = r"C:\Users\Asus\Desktop\Jérémie\Fac_ENSAE\Informatique\Datapython_2AS1\Projet\LREM_inter.csv"
 LREM_inter_csv = LREM_inter_df.to_csv(path_csv)
+
+MODEM_inter_df = stockintervention('MODEM')
+
+path_csv2 = r"C:\Users\Asus\Desktop\Jérémie\Fac_ENSAE\Informatique\Datapython_2AS1\Projet\MODEM_inter.csv"
+MODEM_inter_df.to_csv(path_csv2)
+
+LR_inter_df = stockintervention('LR')
+
+path_csv3 = r"C:\Users\Asus\Desktop\Jérémie\Fac_ENSAE\Informatique\Datapython_2AS1\Projet\LR_inter.csv"
+LR_inter_df.to_csv(path_csv3)
+
+SOC_inter_df = stockintervention('SOC')
+
+path_csv4 = r"C:\Users\Asus\Desktop\Jérémie\Fac_ENSAE\Informatique\Datapython_2AS1\Projet\SOC_inter.csv"
+SOC_inter_df.to_csv(path_csv4)
+
+for group in ['AE', 'GDR', 'LFI', 'LT', 'NG', 'NI', 'UAI', 'UDI']:
+    group_inter_df = stockintervention(group)
+    path_csv_for = r"C:\Users\Asus\Desktop\Jérémie\Fac_ENSAE\Informatique\Datapython_2AS1\Projet\{0}_inter.csv".format(group)
+    group_inter_df.to_csv(path_csv_for)
 
