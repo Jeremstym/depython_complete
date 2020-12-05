@@ -16,7 +16,7 @@ import re
 import depute_api 
 import numpy as np
 
-path_csv = r"C:\Users\Asus\Desktop\Jérémie\Fac_ENSAE\Informatique\Datapython_2AS1\Projet\interventions.csv"
+path_csv = r"C:\Users\Asus\Desktop\Jérémie\Fac_ENSAE\Informatique\Datapython_2AS1\Projet\new_repo_git\depythons\Stock_csv\all_inter.csv"
 df_inter = pd.read_csv(path_csv)
 
 
@@ -108,3 +108,5 @@ def counter_maker(df_parole):
     matrix = np.matrix(countervect(df_parole))
     df_counter = pd.DataFrame(matrix, index=df_parole['groupe'])
     return df_counter
+
+super_vectorizer = counter_maker(df_inter)
