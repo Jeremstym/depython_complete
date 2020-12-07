@@ -19,6 +19,8 @@ import numpy as np
 path_csv = r"C:\Users\Asus\Desktop\Jérémie\Fac_ENSAE\Informatique\Datapython_2AS1\Projet\new_repo_git\depythons\Stock_csv\all_inter.csv"
 df_inter = pd.read_csv(path_csv)
 
+path_csv2 = r"C:\Users\Asus\Desktop\Jérémie\Fac_ENSAE\Informatique\Datapython_2AS1\Projet\new_repo_git\depythons\Stock_csv\gd_inter.csv"
+df_inter_gd = pd.read_csv(path_csv2)
 
 #-------- Création d'une liste de vocabulaire pour comparer les interventions-
 
@@ -110,3 +112,60 @@ def counter_maker(df_parole):
     return df_counter
 
 super_vectorizer = counter_maker(df_inter)
+
+###---- Création d'un Random Forest Classifier------
+
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestClassifier
+
+super_vectorizer = super_vectorizer.reset_index()
+
+y = super_vectorizer['groupe']
+X = super_vectorizer.drop('groupe', axis=1)
+
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.51)
+
+clf1 = RandomForestClassifier()
+clf1.fit(X_train, y_train)
+
+from sklearn.metrics import classification_report
+
+y_pred = clf1.predict(X_test)
+print(classification_report(y_test, y_pred))
+
+
+df_inter_gd = df_inter_gd.drop('Unnamed: 0', axis=1)
+
+drop = df_inter_gd[df_inter_gd['groupe']=='LR'].sample(65)
+df_gd = df_inter_gd.drop(drop.index)
+gd_vectorizer = counter_maker(df_gd).reset_index()
+
+y_gd = gd_vectorizer['groupe']
+X_gd = gd_vectorizer.drop('groupe', axis=1)
+
+X_train, X_test, y_train, y_test = train_test_split(
+    X_gd, y_gd, test_size=0.33)
+
+clf1 = RandomForestClassifier()
+clf1.fit(X_train, y_train)
+
+from sklearn.metrics import classification_report
+
+y_pred = clf1.predict(X_test)
+print(classification_report(y_test, y_pred))
+
+from sklearn.model_selection import cross_val_score
+scores = cross_val_score(clf1, X_train, y_train, cv=5)
+scores.mean()
+
+from sklearn.svm import SVC
+
+clf2 = SVC()
+clf2.fit(X_train, y_train)
+
+clf2.predict(X_test[0:2])
+
+y_pred = clf2.predict(X_test)
+print(classification_report(y_test, y_pred))
+

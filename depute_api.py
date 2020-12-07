@@ -107,9 +107,19 @@ class CPCApi(object):
             dep_intervention += x
 
         return dep_intervention
+    
+    def liste_mots(self, dep_name):
+        name = self.search_parlementaires(dep_name)[0][0]["nom"]
+        name_pattern = re.sub(' ', '-', unidecode.unidecode(name.lower()))
+        mots_dep = []
+        url = "https://www.nosdeputes.fr/{0}/tags".format(name_pattern)
+        source = request.urlopen(url).read()            
+        page = bs4.BeautifulSoup(source, "lxml")
+        for x in page.find_all('span', {'class' : 'tag_level_4'}):
+            mots_dep.append(re.sub("\n", "", x.get_text()))
             
-
-        
+        return mots_dep
+    
     
     @memoize
     def parlementaires(self, active=None):
