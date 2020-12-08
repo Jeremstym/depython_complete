@@ -3,7 +3,7 @@
 
 ### Python ###
 __pycache__/
-
+__init__.py
 
 ### Other ###
 data/

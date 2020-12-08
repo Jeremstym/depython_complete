@@ -13,8 +13,10 @@ import pandas as pd
 import matplotlib.pyplot as plt 
 from sklearn.feature_extraction.text import CountVectorizer
 import re
-import depute_api 
+import depute_api
 import numpy as np
+
+import super_dataframe
 
 path_csv = r"C:\Users\Asus\Desktop\Jérémie\Fac_ENSAE\Informatique\Datapython_2AS1\Projet\new_repo_git\depythons\Stock_csv\all_inter.csv"
 df_inter = pd.read_csv(path_csv)
@@ -39,6 +41,19 @@ transformer_all = CountVectorizer()
 transformer_all.fit_transform(text_gen)
 
 voc = transformer_all.vocabulary_.keys()
+
+###--- Trouver les mots les plus employer par un parti -----
+
+def common_words(df_parti):
+    text_parti = []
+    for phrase in df_parti['interventions']:
+        text_parti.append(phrase)
+    
+    transformer_parti = CountVectorizer()
+    transformer_parti.fit_transform(text_parti)
+    liste_words = transformer_parti.vocabulary_
+    
+    return liste_words
 
 """
 transfomer_all2 = CountVectorizer(vocabulary=voc)  

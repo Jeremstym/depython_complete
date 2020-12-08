@@ -23,6 +23,12 @@ api = CPCApi()
 
 text_dep = api.interventions2('Jean-Luc Mélenchon')
 
+#---- Création d'un stop words ------
+
+stopping_list = open("stopwords-fr.txt","r", encoding="utf8")
+stopwords_list = stopping_list.read().split('\n')
+stopping_list.close()
+
 #----------Création du word cloud ----------
 
 text_cloud = ""
@@ -30,9 +36,7 @@ for morceau in text_dep:
     text_cloud += morceau
     
 stopwords = set(STOPWORDS)
-stopwords.update(["le", "la", "de", "c'est", "à", "ce", "vous", "il", "est", 
-                  "qui", "tout", "pas", "les", "et", "dans", "une", "un",
-                  "par", "en", "que", "se", "ne", "sur", "des", "au", "n'est"])
+stopwords.update(stopwords_list)
 
 try_cloud = WordCloud(stopwords = stopwords,
                       max_font_size=50, max_words=150, 
@@ -47,7 +51,7 @@ plt.show()
 
 # Ne pas oublier de poser api = CPCApi() 
 
-def wordcloudg_gen(dep_name):
+def wordcloud_gen(dep_name):
     name = api.search_parlementaires(dep_name)[0][0]['nom']
     text_dep = api.interventions2(name)
     
@@ -55,10 +59,8 @@ def wordcloudg_gen(dep_name):
     for morceau in text_dep:
         text_cloud += morceau
     
-    stopwords = set(STOPWORDS)
-    stopwords.update(["le", "la", "de", "c'est", "à", "ce", "vous", "il", "est", 
-                  "qui", "tout", "pas", "les", "et", "dans", "une", "un",
-                  "par", "en", "que", "se", "ne", "sur", "des", "au", "n'est"])
+    stopwords = set(STOPWORDS)  
+    stopwords.update(stopwords_list)
 
     try_cloud = WordCloud(stopwords = stopwords,
                           max_font_size=50, max_words=150, 

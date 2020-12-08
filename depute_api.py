@@ -82,6 +82,22 @@ class CPCApi(object):
         url = '%s/recherche/%s?page=%s&format=%s' % (self.base_url, q, page, 'csv')
         return requests.get(url).content
     
+    
+    @memoize
+    def parlementaires(self, active=None):
+        if active is None:
+            url = '%s/%s/%s' % (self.base_url, self.ptype_plural, self.format)
+        else:
+            url = '%s/%s/enmandat/%s' % (self.base_url, self.ptype_plural, self.format)
+
+        data = requests.get(url).json()
+        return [depute[self.ptype] for depute in data[self.ptype_plural]]
+    
+    def search_parlementaires(self, q, field='nom', limit=5):
+        return extractBests(q, self.parlementaires(), processor=lambda x: x[field] if type(x) == dict else x, limit=limit)
+
+
+
     def interventions(self, dep_name, n_sessions=10, start=4850):
         name = self.search_parlementaires(dep_name)[0][0]["nom"]
         dep_intervention = []
@@ -121,22 +137,9 @@ class CPCApi(object):
         return mots_dep
     
     
-    @memoize
-    def parlementaires(self, active=None):
-        if active is None:
-            url = '%s/%s/%s' % (self.base_url, self.ptype_plural, self.format)
-        else:
-            url = '%s/%s/enmandat/%s' % (self.base_url, self.ptype_plural, self.format)
-
-        data = requests.get(url).json()
-        return [depute[self.ptype] for depute in data[self.ptype_plural]]
-    
-    def search_parlementaires(self, q, field='nom', limit=5):
-        return extractBests(q, self.parlementaires(), processor=lambda x: x[field] if type(x) == dict else x, limit=limit)
-
-
 #---------- Importer la table ------------------
         
+"""
 import pandas as pd
 
 import depute_api
@@ -149,7 +152,7 @@ deputies_df = pd.json_normalize(deputies_json)
 
 
 deputies_df.head()
-
+"""
 
 #------ C'est la solution ! ---------------
 #l = []            
