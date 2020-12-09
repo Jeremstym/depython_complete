@@ -48,7 +48,8 @@ def customized(parti_df, nb_mots=100):
     
     return customized_list
     
+###---- Création de la liste de mots pour la modélisation ----
 
-### ---- Des exemples d'utilisations----
+super_liste = customized(LFI_df) + customized(LR_df) + customized(SOC_df)
 
-customized(LFI_df)
+super_liste = list(set(super_liste)) # Suppression des doublons
