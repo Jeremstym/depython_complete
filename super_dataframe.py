@@ -27,12 +27,6 @@ MODEM_df = pd.read_csv(r"C:\Users\Asus\Desktop\Jérémie\Fac_ENSAE\Informatique\
 gd_df = pd.read_csv(r"C:\Users\Asus\Desktop\Jérémie\Fac_ENSAE\Informatique\Datapython_2AS1\Projet\new_repo_git\depythons\Stock_csv\gd_inter.csv")
 all_df = pd.read_csv(r"C:\Users\Asus\Desktop\Jérémie\Fac_ENSAE\Informatique\Datapython_2AS1\Projet\new_repo_git\depythons\Stock_csv\all_inter.csv")
 
-gd_df = gd_df.drop("Unnamed: 0", axis=1)
-all_df = all_df.drop("Unnamed: 0", axis=1)
-
-gd_df.to_csv(r"C:\Users\Asus\Desktop\Jérémie\Fac_ENSAE\Informatique\Datapython_2AS1\Projet\new_repo_git\depythons\Stock_csv\gd_inter.csv", index=False)
-all_df.to_csv(r"C:\Users\Asus\Desktop\Jérémie\Fac_ENSAE\Informatique\Datapython_2AS1\Projet\new_repo_git\depythons\Stock_csv\all_inter.csv", index=False)
-
 
 """
 LFI_df = LFI_df.drop('Unnamed: 0', axis=1)
