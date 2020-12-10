@@ -24,8 +24,8 @@ GDR_df = pd.read_csv(r"C:\Users\Asus\Desktop\Jérémie\Fac_ENSAE\Informatique\Da
 NI_df = pd.read_csv(r"C:\Users\Asus\Desktop\Jérémie\Fac_ENSAE\Informatique\Datapython_2AS1\Projet\new_repo_git\depythons\Stock_csv\NI2_inter.csv")
 UAI_df = pd.read_csv(r"C:\Users\Asus\Desktop\Jérémie\Fac_ENSAE\Informatique\Datapython_2AS1\Projet\new_repo_git\depythons\Stock_csv\UAI2_inter.csv")
 MODEM_df = pd.read_csv(r"C:\Users\Asus\Desktop\Jérémie\Fac_ENSAE\Informatique\Datapython_2AS1\Projet\new_repo_git\depythons\Stock_csv\MODEM2_inter.csv")
-gd_df = pd.read_csv(r"C:\Users\Asus\Desktop\Jérémie\Fac_ENSAE\Informatique\Datapython_2AS1\Projet\new_repo_git\depythons\Stock_csv\gd_inter.csv")
-all_df = pd.read_csv(r"C:\Users\Asus\Desktop\Jérémie\Fac_ENSAE\Informatique\Datapython_2AS1\Projet\new_repo_git\depythons\Stock_csv\all_inter.csv")
+gd_df = pd.read_csv(r"C:\Users\Asus\Desktop\Jérémie\Fac_ENSAE\Informatique\Datapython_2AS1\Projet\new_repo_git\depythons\Stock_csv\gd2_inter.csv")
+all_df = pd.read_csv(r"C:\Users\Asus\Desktop\Jérémie\Fac_ENSAE\Informatique\Datapython_2AS1\Projet\new_repo_git\depythons\Stock_csv\all2_inter.csv")
 
 
 """
