@@ -4,5 +4,11 @@
 ### Python ###
 __pycache__/
 
+
+### Jupyter notebooks ###
+.ipynb_checkpoints
+*/.ipynb_checkpoints/*
+
 ### Other ###
 data/
+env/
