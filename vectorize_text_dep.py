@@ -17,14 +17,13 @@ import re
 import depute_api
 import numpy as np
 
-from one_line_df import df_brut
 from custom_words import super_liste
 
 
-path_csv = "https://raw.githubusercontent.com/rturquier/depythons/main/Stock_csv/all_inter.csv"
+path_csv = "https://raw.githubusercontent.com/rturquier/depythons/main/Stock_csv/all2_inter.csv"
 df_inter_all = pd.read_csv(path_csv)
 
-path_csv2 = "https://raw.githubusercontent.com/rturquier/depythons/main/Stock_csv/gd_inter.csv"
+path_csv2 = "https://raw.githubusercontent.com/rturquier/depythons/main/Stock_csv/gd2_inter.csv"
 df_inter_gd = pd.read_csv(path_csv2)
 
 #-------- Création d'une liste de vocabulaire pour comparer les interventions-
@@ -97,6 +96,12 @@ def countervect(df_parole, groupe=None, voc=super_liste):
         
     return X_groupe.toarray()
     
+def give_lotofwords(df_parole):
+    text_gen = []
+    for phrase in df_parole["interventions"]:
+        text_gen.append(phrase)
+    return text_gen
+
 #---- Création d'un df contenant toutes les interventions par député ----
 
 """

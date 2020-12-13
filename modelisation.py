@@ -15,6 +15,7 @@ Modélisation, plusieurs essais.
 import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
+import collections
 
 from sklearn.pipeline import make_pipeline
 from sklearn.feature_extraction.text import CountVectorizer
@@ -23,16 +24,17 @@ from sklearn.model_selection import GridSearchCV
 
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestClassifier
+from sklearn.svm import SVC
 from sklearn.metrics import classification_report
 
 from custom_words import super_liste
-from vectorize_text_dep import  give_lotofwords
-from super_dataframe import gd_df, all_df, LR_df, LFI_df, SOC_df
+from super_dataframe import gd_df, LREM_df
+from one_line_df import df_simple
 
 
-###---- Création d'un échantillon pour le modèkle ------
+###---- Création d'un échantillon pour le modèle ------
 
-counter = CountVectorizer(vocabulary=super_liste).fit_transform(give_lotofwords(gd_df)).toarray()
+counter = CountVectorizer(vocabulary=super_liste).fit_transform(gd_df['interventions'].values).toarray()
 weak_features = pd.DataFrame(counter, index=gd_df['groupe'])
 weak_features = weak_features.reset_index() # Pour que 'groupe' devienne la target
 
@@ -85,7 +87,7 @@ print(classification_report(y_test, y_pred), clf1.score(X_test,y_test))
 pipe_idf = make_pipeline(CountVectorizer(vocabulary=super_liste),
                          TfidfTransformer())
 
-tf_idf_result = pipe_idf.fit_transform(give_lotofwords(gd_df)).toarray()
+tf_idf_result = pipe_idf.fit_transform(gd_df['interventions'].values).toarray()
 
 nos_features = pd.DataFrame(tf_idf_result, index=gd_df['groupe'])
 nos_features = nos_features.reset_index() # Pour que 'groupe' devienne la target
@@ -98,7 +100,7 @@ X_train2, X_test2, y_train2, y_test2 = train_test_split(
 
 
 
-###---- Évaluation des hyperparamètres -----
+###---- Évaluation des hyperparamètres avec validation croisée -----
 
 
 param_grid = { 
@@ -134,7 +136,80 @@ y_pred2 = clf2.predict(X_test2)
 print(classification_report(y_test2, y_pred2), clf2.score(X_test2,y_test2))
 
 
-### -- Autre essai brouillons --------
+###--- Td_idf avec df_simple -----------------------
+#---- Création d'un échantillon pour le modèle -------------
+
+
+pipe_idf2 = make_pipeline(CountVectorizer(vocabulary=super_liste),
+                         TfidfTransformer())
+
+tf_idf_tidy = pipe_idf2.fit_transform(df_simple['interventions'].values.astype('U')).toarray()
+
+tidy_features = pd.DataFrame(tf_idf_tidy, index=df_simple['droite'])
+tidy_features = tidy_features.reset_index() # Pour que 'groupe' devienne la target
+
+y3 = tidy_features['droite']
+X3 = tidy_features.drop('droite', axis=1)
+
+X_train3, X_test3, y_train3, y_test3 = train_test_split(
+    X3, y3, test_size=0.20)
+
+
+#### Modélisation avec RandomForestClassifier -----
+
+
+clf3 = RandomForestClassifier(criterion="gini", max_depth=8,
+                              max_features="auto", n_estimators=200)
+
+clf3.fit(X_train3, y_train3)
+
+
+y_pred3 = clf3.predict(X_test3)
+
+print(classification_report(y_test3, y_pred3), clf3.score(X_test3, y_test3))
+
+
+### ---- Modélisation avec SVC, avec les mêmes features ------
+## Validation croisée pour trouver hyperparamètres -----
+
+tuned_parameters = [{'kernel': ['rbf'], 'gamma': [1e-3, 1e-4],
+                     'C': [1, 10, 100, 1000]},
+                    {'kernel': ['linear'], 'C': [1, 10, 100, 1000]}]
+
+
+CV_rfc3 = GridSearchCV(estimator=SVC(), 
+                      param_grid=tuned_parameters, cv=5)
+
+CV_rfc3.fit(X_train3, y_train3)
+opti_param3 = CV_rfc3.best_params_
+print("Les meilleurs hyperparamètres sont " + str(opti_param3))
+
+#--- Modélisation ! ---------------
+
+svc_try = SVC(C=10, kernel="linear")
+svc_try.fit(X_train3, y_train3)
+
+y_pred4 = svc_try.predict(X_test3)
+print(classification_report(y_test3, y_pred4)) 
+print("Le score du test est " + str(clf3.score(X_test3, y_test3)))
+
+## On va utiliser ce dernier modèle pour prévoir l'appartenance politique 
+# des députés LREM.
+
+final_pipe = make_pipeline(CountVectorizer(vocabulary=super_liste),
+                         TfidfTransformer())
+
+tf_idf_LREM = final_pipe.fit_transform(LREM_df['interventions'].values.astype('U')).toarray()
+
+LREM_features = pd.DataFrame(tf_idf_LREM)
+
+LREM_pred = svc_try.predict(LREM_features)
+LREM_pred
+
+collections.Counter(LREM_pred)
+
+
+### -- Autres essais brouillons, ne pas faire attention --------
 """
 
 drop = gd_df[gd_df['groupe']=='LR'].sample(65)

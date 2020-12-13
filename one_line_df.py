@@ -9,7 +9,7 @@ Code de Rémi pour créer un DataFrame avec une intervention = une ligne
 
 import pandas as pd
 
-data_url = "https://raw.githubusercontent.com/rturquier/depythons/main/Stock_csv/gd_inter.csv"
+data_url = "https://raw.githubusercontent.com/rturquier/depythons/main/Stock_csv/gd2_inter.csv"
 df_brut = pd.read_csv(data_url)
 df_brut.sample(n=5)
 
@@ -18,6 +18,8 @@ df_brut = df_brut.\
             assign(droite = df_brut["groupe"] == "LR").\
             sort_values(by = ["droite"], ascending = False)
 df_brut.head()
+
+df_simple = df_brut.assign(droite = df_brut["groupe"] == "LR")
 
 # Équilibrage du nombre de députés
 def balance_left_right(df):
@@ -43,7 +45,15 @@ def convert_to_list(interventions):
 df_brut["interventions"] = df_brut["interventions"].apply(convert_to_list)
 
 
+# Séparer toutes les interventions en colonnes différentes
+df_tidy = df_brut.explode("interventions")
+df_tidy['droite'] = df_tidy['droite'].astype('int')
+df_tidy
+
 # Créer une feature "longeur de l'intervention"
+
+df_brut = df_brut.explode("interventions")
 df_brut = df_brut.assign(longeur = df_brut["interventions"].str.len())
+
 
 
