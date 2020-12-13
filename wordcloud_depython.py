@@ -14,6 +14,7 @@ from depute_api import CPCApi
 from os import path
 from PIL import Image
 from wordcloud import WordCloud, STOPWORDS, ImageColorGenerator
+from urllib import request
 
 import matplotlib.pyplot as plt
 
@@ -21,15 +22,18 @@ import matplotlib.pyplot as plt
 
 api = CPCApi()
 
-text_dep = api.interventions2('Jean-Luc Mélenchon')
 
-#---- Création d'un stop words ------
+# Création d'un stopwords
 
-stopping_list = open("stopwords-fr.txt","r", encoding="utf8")
-stopwords_list = stopping_list.read().split('\n')
-stopping_list.close()
+stopping_list = request.urlopen(
+    "https://raw.githubusercontent.com/rturquier/depythons/main/stopwords-fr.txt"
+).read()
+stopping_list = stopping_list.decode("utf-8")
+stopwords_list = stopping_list.split("\n")
 
 #----------Création du word cloud ----------
+"""
+text_dep = api.interventions2('Jean-Luc Mélenchon')
 
 text_cloud = ""
 for morceau in text_dep:
@@ -45,7 +49,7 @@ try_cloud = WordCloud(stopwords = stopwords,
 plt.imshow(try_cloud, interpolation='bilinear')
 plt.axis("off")
 plt.show()
-
+"""
 
 #----- Fonction génératrice d'un wordcloud-----
 
@@ -68,5 +72,6 @@ def wordcloud_gen(dep_name):
 
     plt.imshow(try_cloud, interpolation='bilinear')
     plt.axis("off")
+    plt.title(name)
     plt.show()
     

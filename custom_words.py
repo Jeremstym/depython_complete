@@ -10,14 +10,17 @@ Module pour créer une liste de mots customisée avant de modéliser
 import pandas as pd
 import depute_api
 from super_dataframe import LFI_df, LR_df, SOC_df
+from urllib import request
 
 from collections import Counter
 
-###--- Création d'un stopwords ----
+# Création d'un stopwords
 
-stopping_list = open("stopwords-fr.txt", "r", encoding="utf8")
-stopwords_list = stopping_list.read().split('\n')
-stopping_list.close()
+stopping_list = request.urlopen(
+    "https://raw.githubusercontent.com/rturquier/depythons/main/stopwords-fr.txt"
+).read()
+stopping_list = stopping_list.decode("utf-8")
+stopwords_list = stopping_list.split("\n")
 
 ###---- Création de la liste de mots customisée --------
 
