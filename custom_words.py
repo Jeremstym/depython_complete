@@ -9,7 +9,6 @@ Module pour créer une liste de mots customisée avant de modéliser
 
 import pandas as pd
 import depute_api
-from super_dataframe import LFI_df, LR_df, SOC_df
 from urllib import request
 
 from collections import Counter
@@ -52,6 +51,10 @@ def customized(parti_df, nb_mots=100):
     return customized_list
     
 ###---- Création de la liste de mots pour la modélisation ----
+
+LFI_df = pd.read_csv("https://raw.githubusercontent.com/rturquier/depythons/main/Stock_csv/LFI2_inter.csv")
+LR_df = pd.read_csv("https://raw.githubusercontent.com/rturquier/depythons/main/Stock_csv/LR2_inter.csv")
+SOC_df = pd.read_csv("https://github.com/rturquier/depythons/blob/main/Stock_csv/SOC2_inter.csv")
 
 super_liste = customized(LFI_df) + customized(LR_df) + customized(SOC_df)
 
