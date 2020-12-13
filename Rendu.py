@@ -28,6 +28,7 @@
 # Imports
 import numpy as np
 import pandas as pd
+import spacy
 
 # %% [markdown] id="H6wrFWawkgh1"
 # ## Récupération des données
@@ -184,8 +185,6 @@ class CPCApi(object):
 
 # %% id="eJlvLIZsPCVT"
 # Fonctions intermédiaires
-
-
 def deputies_of_group(group, n_deputies):
     all_names = deputies_df[deputies_df["groupe_sigle"] == group]["nom"]
     return all_names[:n_deputies]
@@ -202,8 +201,6 @@ def interventions_of_group(group, n_deputies=15):
 
 
 # Fonction de stockage des interventions
-
-
 def stockintervention(groupe):
     interventions_group = []
     nbdep = deputies_df.groupby("groupe_sigle")["nom"].count()[str(groupe)]
@@ -324,6 +321,37 @@ df_collapsed.columns = [
 
 df_collapsed = df_collapsed.drop(columns="numero_paquet_de_5").rename(
     columns={"interventions_join": "interventions"}
+)
+
+# %% [markdown]
+# Il reste à traiter le texte. On applique les transformations vues dans le
+# dernier TD : mettre en minuscule, séparer tous les mots (tokenisation),
+# supprimer les mots courants (stopwords), et ramener à la racine grammticale
+# (lemmatisation).
+
+# %%
+# Mise en minuscules
+df_spacy = df_collapsed.assign(interventions=df_collapsed.interventions.str.lower())
+
+# Tokenisation
+sp = spacy.load("fr")
+df_spacy["interventions"] = df_spacy.interventions.apply(lambda x: sp(x))
+
+# Lemmatisation
+df_spacy["interventions"] = df_spacy.interventions.apply(
+    lambda tokens: [token.lemma_ for token in tokens]
+)
+
+# Stopwords
+stop_words = sp.Defaults.stop_words | {"'", ",", ";", ":" " "}
+
+df_spacy["interventions"] = df_spacy.interventions.apply(
+    lambda words: [word for word in words if not word in stop_words]
+)
+
+# Résultat
+print(
+    str(df_collapsed.interventions[42]) + "\n ---> \n" + str(df_spacy.interventions[42])
 )
 
 # %% [markdown] id="EX1okKFfQcNn"
