@@ -26,6 +26,7 @@
 
 # %% id="u6CCHVOX7XDx"
 # Imports
+import numpy as np
 import pandas as pd
 
 # %% [markdown] id="H6wrFWawkgh1"
@@ -226,27 +227,12 @@ deputies_df = pd.json_normalize(deputies_json)
 UAI_df = stockintervention("UAI")
 UAI_df
 
-# %% [markdown] id="OAInatZOPCVV"
-# Importons maintenant les données qui nous intéressent
-
-# %% id="kT8sAhwMPCVW"
-LFI_df = pd.read_csv(
-    "https://raw.githubusercontent.com/rturquier/depythons/main/Stock_csv/LFI2_inter.csv"
-)
-LREM_df = pd.read_csv(
-    "https://raw.githubusercontent.com/rturquier/depythons/main/Stock_csv/LREM2_inter.csv"
-)
-LR_df = pd.read_csv(
-    "https://raw.githubusercontent.com/rturquier/depythons/main/Stock_csv/LR2_inter.csv"
-)
-SOC_df = pd.read_csv(
-    "https://raw.githubusercontent.com/rturquier/depythons/main/Stock_csv/SOC2_inter.csv"
-)
 
 # %% [markdown] id="xM3XXd3KlFz0"
 # ## Nettoyage des données
-# Après une exploration préliminaire, nous avons choisi de nous concentrer sur deux groupes parlementaires. Les groupes LFI et LR nous ont paru ceux les plus susceptibles d'utiliser un discours différent et que nous pourrions distinguer dans notre modèle.
-
+# Après une exploration préliminaire, nous avons choisi de nous concentrer sur trois groupes parlementaires.
+# Nous avons sélectionné les interventions des groupes LFI (La France Insoumise) et SOC (Socialistes) pour la gauche, et le groupe LR (Les Républicains) pour la droite.
+# ### Création de la variable cible et mise en forme *tidy*
 # %% id="im9QOPF57LlX"
 ### Import des données brutes récupérées avec l'API
 data_url = (
@@ -259,24 +245,6 @@ df_brut.sample(n=5)
 # Création d'une indicatrice `droite` qui sera la cible de la classification
 df_brut = df_brut.assign(droite=df_brut["groupe"] == "LR")
 
-
-# %% colab={"base_uri": "https://localhost:8080/"} id="a6SDD_yytQU6" outputId="abdc0eaa-4501-48f7-c6c2-d3dcea900fed"
-# Équilibrage du nombre de députés
-def balance_left_right(df):
-    count = df.droite.value_counts()
-    n_droite, n_gauche = count[True], count[False]
-    df = df.sort_values(by=["droite"], ascending=False)
-
-    if n_droite > n_gauche:
-        df = df[n_droite - n_gauche :]
-    elif n_droite < n_gauche:
-        df = df[2 * n_droite :]
-
-    return df
-
-
-df_brut = balance_left_right(df_brut)
-df_brut.droite.value_counts()
 
 # %% colab={"base_uri": "https://localhost:8080/", "height": 419} id="O0lFEGtugn2k" outputId="1514b6d3-6d2c-4796-c7d1-ba2c2e4122b9"
 # Régler un problème de type
@@ -294,10 +262,69 @@ df_brut["interventions"] = df_brut["interventions"].apply(convert_to_list)
 df_tidy = df_brut.explode("interventions")
 df_tidy
 
-# %% colab={"base_uri": "https://localhost:8080/", "height": 419} id="2byMHZf7ZDsj" outputId="14293485-2624-4066-f5d8-66c6862b41c4"
-# Créer une feature "longeur de l'intervention"
-df_brut = df_brut.assign(longeur=df_brut["interventions"].str.len())
-df_brut
+# %%
+# -- Équilibrage du nombre de d'interventions --
+# Nous nous sommes posé la question de l'équilibrage des données.
+# Après avoir envisagé plusieurs méthodes, nous avons choisi d'équilibrer les
+# donées à la main. Ce n'est pas forcément la meilleure méthode, mais c'est
+# sans doute la plus simple.
+def n_droite_n_gauche(df):
+    count = df.droite.value_counts()
+    return count[True], count[False]
+
+
+def balance_left_right(df):
+    n_droite, n_gauche = n_droite_n_gauche(df)
+    df = df.sort_values(by=["droite"], ascending=False)
+
+    if n_droite > n_gauche:
+        df = df[n_droite - n_gauche :]
+    elif n_droite < n_gauche:
+        df = df[2 * n_droite :]
+
+    return df
+
+
+df_tidy = balance_left_right(df_tidy)
+n_droite_n_gauche(df_tidy)
+
+
+# %% [markdown]
+# ### Longueur des interventions et regroupement par groupes de 5 interventions
+
+# %%
+# Création d'une variable qui contient la longueur des interventions
+df_tidy = df_tidy.assign(longueur=df_tidy["interventions"].str.len())
+
+# %%
+# Regroupement par groupes de 5 interventions
+# Pour cela, on crée une variable `numero_paquet_de_5` qui prend la même valeur
+# pour 5 députés du même bord.
+n_droite, n_gauche = n_droite_n_gauche(df_tidy)
+
+df_tidy = df_tidy.sort_values(by=["droite"], ascending=False)
+df_tidy["numero_paquet_de_5"] = list(range(n_droite)) + list(range(n_gauche))
+df_tidy["numero_paquet_de_5"] = np.floor(df_tidy["numero_paquet_de_5"] / 5)
+df_tidy["numero_paquet_de_5"] = df_tidy["numero_paquet_de_5"].astype(int)
+
+
+# %%
+# Grouper par bord politique et par numéro de paquet de 5, puis aggréger
+df_collapsed = (
+    df_tidy.drop(columns=["groupe", "nom"])
+    .groupby(["droite", "numero_paquet_de_5"])
+    .agg({"interventions": "".join, "longueur": ["min", "max", "mean"]})
+    .reset_index()
+)
+
+# Arranger le nom des colonnes
+df_collapsed.columns = [
+    "_".join(col).rstrip("_") for col in df_collapsed.columns.values
+]
+
+df_collapsed = df_collapsed.drop(columns="numero_paquet_de_5").rename(
+    columns={"interventions_join": "interventions"}
+)
 
 # %% [markdown] id="EX1okKFfQcNn"
 # ## Exploration et feature engineering
@@ -306,15 +333,7 @@ df_brut
 # Il faudrait faire un test-train-split ici, je crois
 
 # %% id="1Yjhplu3QhBp"
-# Création de features simples :
-# - longueur de l'intervention, en nombre de caractères
-# - nombre de points d'exclamation
-# - nombre de points d'interrogation
-df_tidy = df_tidy.assign(
-    longueur=df_tidy["interventions"].str.len(),
-    exclamation=df_tidy["interventions"].str.count("!"),
-    interrogation=df_tidy["interventions"].str.count("\?"),
-)
+
 
 # %% [markdown] id="p0ZAydeEPCVc"
 # ## Visualisation des données (wordcloud, statistiques descriptives...)
