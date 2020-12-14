@@ -9,9 +9,9 @@
 #       format_version: '1.3'
 #       jupytext_version: 1.7.1
 #   kernelspec:
-#     display_name: depythons
+#     display_name: Python 3
 #     language: python
-#     name: depythons
+#     name: python3
 # ---
 
 # %% [markdown] colab_type="text" id="view-in-github"
@@ -28,190 +28,30 @@
 # Imports
 import numpy as np
 import pandas as pd
+from urllib import request
 import spacy
+
+# %%
+# Si difficultés à importer les modules, utiliser la méthode suivante : 
+import sys
+directory = r"C:\Users\Asus\Desktop\Jérémie\Fac_ENSAE\Informatique\Datapython_2AS1\Projet\new_repo_git\depythons"
+sys.path.append(directory)
+
+# %%
+from depute_api import CPCApi
 
 # %% [markdown] id="H6wrFWawkgh1"
 # ## Récupération des données
 # Les données ont été récupérées par l'intermédiaire de [l'API](https://github.com/regardscitoyens/nosdeputes.fr/blob/master/doc/api.md) mise à disposition par l'association Regards citoyens.
 #
-# Nous avons d'abord utilisé un module nommé depute_api, que nous avons ensuite complété avec trois fonctions :
+# Nous avons d'abord utilisé un module nommé depute_api, que nous avons ensuite complété avec deux fonctions :
 # Les fonctions *interventions* et *interventions2* permettent d'entrer le nom d'un député pour obtenir une liste d'interventions (sous forme de liste de str).
-# La fonction ...
-
-# %% id="OW5P37oZPCVR"
-# ----- Codage de l'API --------------------------------------------------
-from operator import itemgetter
-import requests
-import warnings
-import re
-import bs4
-import unidecode
-from urllib import request
-
-
-with warnings.catch_warnings():
-    warnings.filterwarnings("ignore", category=UserWarning)
-    from fuzzywuzzy.process import extractBests
-
-
-__all__ = ["CPCApi"]
-
-
-def memoize(f):
-    cache = {}
-
-    def aux(*args, **kargs):
-        k = (args, tuple(sorted(kargs.items())))
-        if k not in cache:
-            cache[k] = f(*args, **kargs)
-        return cache[k]
-
-    return aux
-
-
-class CPCApi(object):
-    format = "json"
-
-    def __init__(self, ptype="depute", legislature=None):
-        """
-        type: depute or senateur
-        legislature: 2007-2012 or None
-        """
-
-        assert ptype in ["depute", "senateur"]
-        assert legislature in ["2007-2012", "2012-2017", None]
-        self.legislature = legislature
-        self.ptype = ptype
-        self.ptype_plural = ptype + "s"
-        self.base_url = "https://%s.nos%s.fr" % (
-            legislature or "www",
-            self.ptype_plural,
-        )
-
-    def synthese(self, month=None):
-        """
-        month format: YYYYMM
-        """
-        if month is None and self.legislature == "2012-2017":
-            raise AssertionError(
-                "Global Synthesis on legislature does not work, see https://github.com/regardscitoyens/nosdeputes.fr/issues/69"
-            )
-
-        if month is None:
-            month = "data"
-
-        url = "%s/synthese/%s/%s" % (self.base_url, month, self.format)
-
-        data = requests.get(url).json()
-        return [depute[self.ptype] for depute in data[self.ptype_plural]]
-
-    def parlementaire(self, slug_name):
-        url = "%s/%s/%s" % (self.base_url, slug_name, self.format)
-        return requests.get(url).json()[self.ptype]
-
-    def picture(self, slug_name, pixels="60"):
-        return requests.get(self.picture_url(slug_name, pixels=pixels))
-
-    def picture_url(self, slug_name, pixels="60"):
-        return "%s/%s/photo/%s/%s" % (self.base_url, self.ptype, slug_name, pixels)
-
-    def search(self, q, page=1):
-        # XXX : the response with json format is not a valid json :'(
-        # Temporary return csv raw data
-        url = "%s/recherche/%s?page=%s&format=%s" % (self.base_url, q, page, "csv")
-        return requests.get(url).content
-
-    @memoize
-    def parlementaires(self, active=None):
-        if active is None:
-            url = "%s/%s/%s" % (self.base_url, self.ptype_plural, self.format)
-        else:
-            url = "%s/%s/enmandat/%s" % (self.base_url, self.ptype_plural, self.format)
-
-        data = requests.get(url).json()
-        return [depute[self.ptype] for depute in data[self.ptype_plural]]
-
-    def search_parlementaires(self, q, field="nom", limit=5):
-        return extractBests(
-            q,
-            self.parlementaires(),
-            processor=lambda x: x[field] if type(x) == dict else x,
-            limit=limit,
-        )
-
-    def interventions(self, dep_name, n_sessions=10, start=4850):
-        name = self.search_parlementaires(dep_name)[0][0]["nom"]
-        dep_intervention = []
-        pattern = "(?<=Permalien" + name + ")" + ".*?(?=Voir tous les commentaires)"
-        for num_txt in range(start, start + n_sessions):
-            url = "https://www.nosdeputes.fr/15/seance/%s" % (str(num_txt))
-            source = request.urlopen(url).read()
-            # source.encoding = source.apparent_encoding
-            page = bs4.BeautifulSoup(source, "lxml")
-            x = re.findall(pattern, page.get_text(), flags=re.S)
-            dep_intervention += x
-
-        return dep_intervention
-
-    def interventions2(self, dep_name):
-        name = self.search_parlementaires(dep_name)[0][0]["nom"]
-        name_pattern = re.sub(" ", "+", unidecode.unidecode(name.lower()))
-        dep_intervention = []
-        url = "https://www.nosdeputes.fr/recherche?object_name=Intervention&tag=parlementaire%3D{0}&sort=1".format(
-            name_pattern
-        )
-        source = request.urlopen(url).read()
-        page = bs4.BeautifulSoup(source, "lxml")
-        for x in page.find_all("p", {"class": "content"}):
-            dep_intervention += x
-
-        return dep_intervention
-
-    def liste_mots(self, dep_name):
-        name = self.search_parlementaires(dep_name)[0][0]["nom"]
-        name_pattern = re.sub(" ", "-", unidecode.unidecode(name.lower()))
-        mots_dep = []
-        url = "https://www.nosdeputes.fr/{0}/tags".format(name_pattern)
-        source = request.urlopen(url).read()
-        page = bs4.BeautifulSoup(source, "lxml")
-        for x in page.find_all("span", {"class": "tag_level_4"}):
-            mots_dep.append(re.sub("\n", "", x.get_text()))
-
-        return mots_dep
-
 
 # %% [markdown] id="zGU4ALalPCVS"
 # Ensuite, nous avons créé plusieurs DataFrames à l'aide de la fonction interventions 2, avec les fonctions suivantes :
 
 # %% id="eJlvLIZsPCVT"
-# Fonctions intermédiaires
-def deputies_of_group(group, n_deputies):
-    all_names = deputies_df[deputies_df["groupe_sigle"] == group]["nom"]
-    return all_names[:n_deputies]
-
-
-def interventions_of_group(group, n_deputies=15):
-    names = deputies_of_group(group, n_deputies)
-    print(names)
-    interventions = []
-    for name in names:
-        print(name)
-        interventions += [[group, name, api.interventions2(name)]]
-    return interventions
-
-
-# Fonction de stockage des interventions
-def stockintervention(groupe):
-    interventions_group = []
-    nbdep = deputies_df.groupby("groupe_sigle")["nom"].count()[str(groupe)]
-    print(nbdep)
-    interventions_group += interventions_of_group(groupe, nbdep)
-    interventions_df = pd.DataFrame(
-        interventions_group, columns=["groupe", "nom", "interventions"]
-    )
-
-    return interventions_df
-
+from get_dep_remi import stockintervention
 
 # %% [markdown] id="TwHj_lLqPCVT"
 # Voici un exemple d'utilisation. Pour éviter de perdre du temps ici (la fonction peut mettre du temps à s'exécuter sur les échantillons de grande taille), on exécute la fonction sur un petit parti politique.
@@ -324,10 +164,7 @@ df_collapsed = df_collapsed.drop(columns="numero_paquet_de_5").rename(
 )
 
 # %% [markdown]
-# Il reste à traiter le texte. On applique les transformations vues dans le
-# dernier TD : mettre en minuscule, séparer tous les mots (tokenisation),
-# supprimer les mots courants (stopwords), et ramener à la racine grammticale
-# (lemmatisation).
+# Il reste à traiter le texte. On applique les transformations vues dans le dernier TD : mettre en minuscule, séparer tous les mots (tokenisation), supprimer les mots courants (stopwords), et ramener à la racine grammticale (lemmatisation).
 
 # %%
 # Mise en minuscules
@@ -354,30 +191,13 @@ print(
     str(df_collapsed.interventions[42]) + "\n ---> \n" + str(df_spacy.interventions[42])
 )
 
-# %% [markdown] id="EX1okKFfQcNn"
-# ## Exploration et feature engineering
-
-# %% id="tr7evwW0QdVy"
-# Il faudrait faire un test-train-split ici, je crois
-
-# %% id="1Yjhplu3QhBp"
-
-
 # %% [markdown] id="p0ZAydeEPCVc"
 # ## Visualisation des données (wordcloud, statistiques descriptives...)
 #
 # Nous allons maintenant dans cette partie visualiser les tendances dans les différents partis, ainsi que les mots qui sont les plus utilisés. Nous commençons par le wordcloud.
+# Avant toutes choses, nous importons et complétons un texte de stopwords pour retirer tous les mots impertinents de la visualisation, et de la modélisation à suivre.
 
-# %% id="AhEb0zObPCVd"
-# Imports
-
-from wordcloud import WordCloud, STOPWORDS, ImageColorGenerator
-import matplotlib.pyplot as plt
-
-# %matplotlib inline
-
-from urllib import request
-
+# %%
 # Création d'un stopwords
 
 stopping_list = request.urlopen(
@@ -386,27 +206,8 @@ stopping_list = request.urlopen(
 stopping_list = stopping_list.decode("utf-8")
 stopwords_list = stopping_list.split("\n")
 
-
-def wordcloud_gen(dep_name):
-    name = api.search_parlementaires(dep_name)[0][0]["nom"]
-    text_dep = api.interventions2(name)
-
-    text_cloud = ""
-    for morceau in text_dep:
-        text_cloud += morceau
-
-    stopwords = set(STOPWORDS)
-    stopwords.update(stopwords_list)
-
-    try_cloud = WordCloud(
-        stopwords=stopwords, max_font_size=50, max_words=150, background_color="white"
-    ).generate(text_cloud)
-
-    plt.imshow(try_cloud, interpolation="bilinear")
-    plt.axis("off")
-    plt.title(name)
-    plt.show()
-
+# %% id="AhEb0zObPCVd"
+from wordcloud_depython import wordcloud_gen
 
 # %% [markdown] id="esjyOFUXPCVe"
 # Quelques petits essais...
@@ -417,45 +218,161 @@ wordcloud_gen("Jean-Luc Mélenchon"), wordcloud_gen("Eric Ciotti")
 # %% [markdown] id="O-RmXt3xPCVf"
 # ### Liste de mots customisée
 #
-# Créons dès à présent une fonction qui retourne les mots les plus utilisés par les membres d'un parti. Cette liste de mots va nous servir pour modéliser les champs lexicaux (quel parti a le plus tendance à utiliser tel mot ?).
+# Nous avons créé deux fonction qui permettent de retourner les mots les plus utilisés par les membres d'un parti. Cette liste de mots va nous servir pour modéliser les champs lexicaux (quel parti a le plus tendance à utiliser tel mot ?). Nous créons cette liste de 144 mots sous le nom de *super_liste*.
 
-# %% id="Xkllno7mPCVg"
-from collections import Counter
+# %%
+from custom_words import super_liste
+
+# %% [markdown] id="I0lSH6JWPCVh" outputId="a243f78a-7908-4342-b754-89bfd768da17"
+# # Modéslisation
+#
+# Nous passons maintenant à la partie de la modélisation. Nous avons pour cela procédé en plusieurs espace. 
+# 1. La première consiste en la création d'une table *df_simple* qui regroupe uniquement les partis de gauche classiques (Socisalites et LFI) et le parti LR. Nous rajoutons une colonne "droite" qui renvoie **True** si le parti est de droite (LR ici), **False** sinon. Cela permettra après d'entraîner le modèle supervisé, le label étant donné par cette colonne.
+# 2. La deuxième étape consiste à transfomrer le DataFrame contenant "Parti politique", "Nom du député" et "Interventions" en une matrice **TF-IDF**. Les détails seront donnés plus bas.
+# 3. La deuxième étape consiste à entraîner deux modèles (ici, **RandomForestClassifier** et **SVC**) sur les données, en évaluant à chaque fois quels sont les meileurs hyperparamètres à l'aide de la méthode de validation croisée.
+# 4. La dernière étape consiste à exécuter le modèle sur les députés du parti LREM pour prédire à quel bord politique ils pourraient potentiellement appartenir, commte tenu des mots les plus courants de leurs interventions.
+
+# %% [markdown]
+# #### Première étape
+# Nous créons d'abord la matrice df_simple
+
+# %%
+data_url = "https://raw.githubusercontent.com/rturquier/depythons/main/Stock_csv/gd2_inter.csv"
+df_brut = pd.read_csv(data_url)
+df_brut.sample(n=5)
+
+# Création d'une indicatrice `droite` qui sera la cible de la classification
+df_brut = df_brut.\
+            assign(droite = df_brut["groupe"] == "LR").\
+            sort_values(by = ["droite"], ascending = False)
+df_brut.head()
+
+df_simple = df_brut.assign(droite = df_brut["groupe"] == "LR")
+df_simple
+
+# %% [markdown]
+# #### Deuxième étape
+#
+# Nous allons maintenant créer les matrices **Tf-Idf** qui vont nous servir pour les modèles.
+
+# %%
+# Voici tous les imports qui sont nécessaires pour cette partie et la suite
+
+import collections
+
+from sklearn.pipeline import make_pipeline
+from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.feature_extraction.text import TfidfTransformer
+from sklearn.model_selection import GridSearchCV
+
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.svm import SVC
+from sklearn.metrics import classification_report
+
+LREM_df = pd.read_csv("https://raw.githubusercontent.com/rturquier/depythons/main/Stock_csv/LREM2_inter.csv")
+
+# %% [markdown]
+# Nous créons une matrice td-idf pour le DataFrame gd_df, puis nous séparons les lignes en un échantillon d'entraînement et un échantillon de test.
+# Ensuite nous effectuons la même chose avec le DataFrame df_simple.
+
+# %%
+pipe_idf = make_pipeline(CountVectorizer(vocabulary=super_liste), TfidfTransformer())
+
+tf_idf_simple = pipe_idf2.fit_transform(df_simple['interventions'].values.astype('U')).toarray()
+
+simple_features = pd.DataFrame(tf_idf_simple, index=df_simple['droite'])
+simple_features = simple_features.reset_index() # Pour que 'groupe' devienne la target
+
+y = simple_features['droite']
+X = simple_features.drop('droite', axis=1)
+
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.20)
+simple_features
+
+# %% [markdown]
+# #### Troisième étape
+# Nous allons maintenant évaluer quels sont les meilleurs hyperparamètres pour chaque modèle.
+# * D'abord le modèle RandomForestClassifier
+# * Ensuite le modèle SVC
+
+# %%
+###---- Évaluation des hyperparamètres avec validation croisée pour le RandomForestClassifier -----
+param_grid = { 
+    'n_estimators': [200, 500],
+    'max_features': ['auto', 'sqrt', 'log2'],
+    'max_depth' : [4,5,6,7,8],
+    'criterion' :['gini', 'entropy']
+}
+
+CV_rfc2 = GridSearchCV(estimator=RandomForestClassifier(), param_grid=param_grid, cv=5)
+
+CV_rfc2.fit(X_train, y_train)
+opti_param1 = CV_rfc2.best_params_
+
+"""
+La fonction met du temps à s'exécuter. Voici les paramètres qu'elle trouve
+{'criterion': 'gini',
+ 'max_depth': 8,
+ 'max_features': 'auto',
+ 'n_estimators': 200}
+Pas la peine de la relancer à chaque fois.
+"""
+
+# %%
+## Validation croisée pour trouver hyperparamètres pour le modèle SVC -----
+
+tuned_parameters = [{'kernel': ['rbf'], 'gamma': [1e-3, 1e-4],
+                     'C': [1, 10, 100, 1000]},
+                    {'kernel': ['linear'], 'C': [1, 10, 100, 1000]}]
 
 
-def give_text(groupe_df):
-    list_groupe = []
-    for words in groupe_df["interventions"]:
-        list_groupe.append(words)
+CV_rfc3 = GridSearchCV(estimator=SVC(), 
+                      param_grid=tuned_parameters, cv=5)
 
-    text_groupe = ""
+CV_rfc3.fit(X_train, y_train)
+opti_param2 = CV_rfc3.best_params_
+print("Les meilleurs hyperparamètres sont " + str(opti_param2))
 
-    for block in list_groupe:
-        for carac in block:
-            text_groupe += carac
+# %% [markdown]
+# Nous allons maintenant entraîner les deux modèles successivment et évaluer leur pertinence.
 
-    return text_groupe
+# %%
+clf = RandomForestClassifier(criterion="gini", max_depth=8, max_features="auto", n_estimators=200)
 
+clf.fit(X_train, y_train)
 
-def customized(parti_df, nb_mots=100):
-    parti_split = give_text(parti_df).split()
-    parti_pure = [word for word in parti_split if word not in stopwords_list]
-    parti_counter = Counter(parti_pure)
-    parti_commons = parti_counter.most_common(nb_mots)
+y_pred = clf.predict(X_test)
 
-    customized_list = []
-    for x in parti_commons:
-        customized_list.append(x[0])
+print(classification_report(y_test, y_pred))
+print("Le score du test est " + str(clf.score(X_test, y_test)))
 
-    return customized_list
+# %%
+svc_try = SVC(C=10, kernel="linear")
+svc_try.fit(X_train, y_train)
 
+y_pred2 = svc_try.predict(X_test)
+print(classification_report(y_test, y_pred2)) 
+print("Le score du test est " + str(svc_try.score(X_test, y_test)))
 
-# %% [markdown] id="Q1jlrJsUPCVh"
-# Utilisons ces fonctions pour créer une liste de mots customisée, qui contient les mots les plus utilisés, partis de gauche et de droite confondus.
+# %% [markdown]
+# #### Quatrième étape
+# Nous regardons maintenant quel classfication effectue le modèle sur le parti LREM.
+# Premièrement, nous transformons d'abord la matrice LREM.
 
-# %% id="I0lSH6JWPCVh" outputId="a243f78a-7908-4342-b754-89bfd768da17"
-super_liste = customized(LFI_df) + customized(LR_df) + customized(SOC_df)
-super_liste = list(set(super_liste))  # Suppression des doublons
-super_liste
+# %%
+final_pipe = make_pipeline(CountVectorizer(vocabulary=super_liste), TfidfTransformer())
 
-# %% id="xpEE2y5JPCVi"
+tf_idf_LREM = final_pipe.fit_transform(LREM_df['interventions'].values.astype('U')).toarray()
+
+LREM_features = pd.DataFrame(tf_idf_LREM)
+
+# %%
+LREM_pred = clf.predict(LREM_features)
+print(collections.Counter(LREM_pred))
+print("Le modèle RFC classe", str(collections.Counter(LREM_pred)[1]), "députés à droite et", str(collections.Counter(LREM_pred)[0]), "à gauche")
+
+# %%
+LREM_pred2 = svc_try.predict(LREM_features)
+print(collections.Counter(LREM_pred2))
+print("Le modèle SVC classe", str(collections.Counter(LREM_pred2)[1]), "députés à droite et", str(collections.Counter(LREM_pred2)[0]), "à gauche")
