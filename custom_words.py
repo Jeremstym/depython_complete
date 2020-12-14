@@ -27,13 +27,13 @@ def give_text(groupe_df):
     list_groupe = []
     for words in groupe_df['interventions']:
         list_groupe.append(words)
-        
+
     text_groupe = ""
-    
+
     for block in list_groupe:
         for carac in block:
             text_groupe += carac
-            
+
     return text_groupe
 
 
@@ -43,18 +43,18 @@ def customized(parti_df, nb_mots=100):
     parti_pure = [word for word in parti_split if word not in stopwords_list]
     parti_counter = Counter(parti_pure)
     parti_commons = parti_counter.most_common(nb_mots)
-    
+
     customized_list = []
     for x in parti_commons:
         customized_list.append(x[0])
-    
+
     return customized_list
-    
+
 ###---- Création de la liste de mots pour la modélisation ----
 
 LFI_df = pd.read_csv("https://raw.githubusercontent.com/rturquier/depythons/main/Stock_csv/LFI2_inter.csv")
 LR_df = pd.read_csv("https://raw.githubusercontent.com/rturquier/depythons/main/Stock_csv/LR2_inter.csv")
-SOC_df = pd.read_csv("https://github.com/rturquier/depythons/blob/main/Stock_csv/SOC2_inter.csv")
+SOC_df = pd.read_csv("https://raw.githubusercontent.com/rturquier/depythons/main/Stock_csv/SOC2_inter.csv")
 
 super_liste = customized(LFI_df) + customized(LR_df) + customized(SOC_df)
 
