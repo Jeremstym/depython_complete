@@ -26,16 +26,21 @@
 
 # %% id="u6CCHVOX7XDx"
 # Imports
+from urllib import request
+
 import numpy as np
 import pandas as pd
-from urllib import request
 import spacy
 
+from sklearn.model_selection import train_test_split
+
 # %%
-# Si difficultés à importer les modules, utiliser la méthode suivante : 
-import sys
-directory = r"C:\Users\Asus\Desktop\Jérémie\Fac_ENSAE\Informatique\Datapython_2AS1\Projet\new_repo_git\depythons"
-sys.path.append(directory)
+# Si les imports de la cellule suivante ne fonctionnent pas,
+# on peut exécuter ces lignes :
+
+# import sys
+# directory = r"path/to/repo"
+# sys.path.append(directory)
 
 # %%
 from depute_api import CPCApi
@@ -163,6 +168,8 @@ df_collapsed = df_collapsed.drop(columns="numero_paquet_de_5").rename(
     columns={"interventions_join": "interventions"}
 )
 
+df_collapsed
+
 # %% [markdown]
 # Il reste à traiter le texte. On applique les transformations vues dans le dernier TD : mettre en minuscule, séparer tous les mots (tokenisation), supprimer les mots courants (stopwords), et ramener à la racine grammticale (lemmatisation).
 
@@ -170,29 +177,54 @@ df_collapsed = df_collapsed.drop(columns="numero_paquet_de_5").rename(
 # Mise en minuscules
 df_spacy = df_collapsed.assign(interventions=df_collapsed.interventions.str.lower())
 
+# %%
 # Tokenisation
+# Commande pour télécharger les données pour la version française de spaCy :
+# python -m spacy download fr_core_news_sm
 sp = spacy.load("fr")
 df_spacy["interventions"] = df_spacy.interventions.apply(lambda x: sp(x))
 
+# %%
 # Lemmatisation
 df_spacy["interventions"] = df_spacy.interventions.apply(
     lambda tokens: [token.lemma_ for token in tokens]
 )
 
+# %%
 # Stopwords
-stop_words = sp.Defaults.stop_words | {"'", ",", ";", ":" " "}
+stop_words = sp.Defaults.stop_words | {"'", ",", ";", ":", " "}
 
 df_spacy["interventions"] = df_spacy.interventions.apply(
     lambda words: [word for word in words if not word in stop_words]
 )
 
+# %%
 # Résultat
 print(
     str(df_collapsed.interventions[42]) + "\n ---> \n" + str(df_spacy.interventions[42])
 )
 
+# %% [markdown]
+# Maintenant que le traitement préparatoire des données est terminé, nous
+# pouvons passer aux parties exploration et modélisation. Pour éviter toute
+# fuite d'information des données de test vers les données d'entrainement,
+# nous faisons dès maintenant la séparation. Nous avons retenu la proportion
+# *train* / *test* usuelle de 80% / 20%.
+
+## %%
+X = df_spacy.drop("droite", axis=1)
+y = df_spacy["droite"]
+
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, random_state=42
+)
+
+train = pd.merge(X_train, y_train, left_index=True, right_index=True)
+test = pd.merge(X_test, y_test, left_index=True, right_index=True)
+
+
 # %% [markdown] id="p0ZAydeEPCVc"
-# ## Visualisation des données (wordcloud, statistiques descriptives...)
+# ## Analyse descriptive des données
 #
 # Nous allons maintenant dans cette partie visualiser les tendances dans les différents partis, ainsi que les mots qui sont les plus utilisés. Nous commençons par le wordcloud.
 # Avant toutes choses, nous importons et complétons un texte de stopwords pour retirer tous les mots impertinents de la visualisation, et de la modélisation à suivre.
@@ -226,7 +258,7 @@ from custom_words import super_liste
 # %% [markdown] id="I0lSH6JWPCVh" outputId="a243f78a-7908-4342-b754-89bfd768da17"
 # # Modéslisation
 #
-# Nous passons maintenant à la partie de la modélisation. Nous avons pour cela procédé en plusieurs espace. 
+# Nous passons maintenant à la partie de la modélisation. Nous avons pour cela procédé en plusieurs espace.
 # 1. La première consiste en la création d'une table *df_simple* qui regroupe uniquement les partis de gauche classiques (Socisalites et LFI) et le parti LR. Nous rajoutons une colonne "droite" qui renvoie **True** si le parti est de droite (LR ici), **False** sinon. Cela permettra après d'entraîner le modèle supervisé, le label étant donné par cette colonne.
 # 2. La deuxième étape consiste à transfomrer le DataFrame contenant "Parti politique", "Nom du député" et "Interventions" en une matrice **TF-IDF**. Les détails seront donnés plus bas.
 # 3. La deuxième étape consiste à entraîner deux modèles (ici, **RandomForestClassifier** et **SVC**) sur les données, en évaluant à chaque fois quels sont les meileurs hyperparamètres à l'aide de la méthode de validation croisée.
@@ -237,17 +269,19 @@ from custom_words import super_liste
 # Nous créons d'abord la matrice df_simple
 
 # %%
-data_url = "https://raw.githubusercontent.com/rturquier/depythons/main/Stock_csv/gd2_inter.csv"
+data_url = (
+    "https://raw.githubusercontent.com/rturquier/depythons/main/Stock_csv/gd2_inter.csv"
+)
 df_brut = pd.read_csv(data_url)
 df_brut.sample(n=5)
 
 # Création d'une indicatrice `droite` qui sera la cible de la classification
-df_brut = df_brut.\
-            assign(droite = df_brut["groupe"] == "LR").\
-            sort_values(by = ["droite"], ascending = False)
+df_brut = df_brut.assign(droite=df_brut["groupe"] == "LR").sort_values(
+    by=["droite"], ascending=False
+)
 df_brut.head()
 
-df_simple = df_brut.assign(droite = df_brut["groupe"] == "LR")
+df_simple = df_brut.assign(droite=df_brut["groupe"] == "LR")
 df_simple
 
 # %% [markdown]
@@ -270,7 +304,9 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.svm import SVC
 from sklearn.metrics import classification_report
 
-LREM_df = pd.read_csv("https://raw.githubusercontent.com/rturquier/depythons/main/Stock_csv/LREM2_inter.csv")
+LREM_df = pd.read_csv(
+    "https://raw.githubusercontent.com/rturquier/depythons/main/Stock_csv/LREM2_inter.csv"
+)
 
 # %% [markdown]
 # Nous créons une matrice td-idf pour le DataFrame gd_df, puis nous séparons les lignes en un échantillon d'entraînement et un échantillon de test.
@@ -279,13 +315,15 @@ LREM_df = pd.read_csv("https://raw.githubusercontent.com/rturquier/depythons/mai
 # %%
 pipe_idf = make_pipeline(CountVectorizer(vocabulary=super_liste), TfidfTransformer())
 
-tf_idf_simple = pipe_idf2.fit_transform(df_simple['interventions'].values.astype('U')).toarray()
+tf_idf_simple = pipe_idf2.fit_transform(
+    df_simple["interventions"].values.astype("U")
+).toarray()
 
-simple_features = pd.DataFrame(tf_idf_simple, index=df_simple['droite'])
-simple_features = simple_features.reset_index() # Pour que 'groupe' devienne la target
+simple_features = pd.DataFrame(tf_idf_simple, index=df_simple["droite"])
+simple_features = simple_features.reset_index()  # Pour que 'groupe' devienne la target
 
-y = simple_features['droite']
-X = simple_features.drop('droite', axis=1)
+y = simple_features["droite"]
+X = simple_features.drop("droite", axis=1)
 
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.20)
 simple_features
@@ -298,11 +336,11 @@ simple_features
 
 # %%
 ###---- Évaluation des hyperparamètres avec validation croisée pour le RandomForestClassifier -----
-param_grid = { 
-    'n_estimators': [200, 500],
-    'max_features': ['auto', 'sqrt', 'log2'],
-    'max_depth' : [4,5,6,7,8],
-    'criterion' :['gini', 'entropy']
+param_grid = {
+    "n_estimators": [200, 500],
+    "max_features": ["auto", "sqrt", "log2"],
+    "max_depth": [4, 5, 6, 7, 8],
+    "criterion": ["gini", "entropy"],
 }
 
 CV_rfc2 = GridSearchCV(estimator=RandomForestClassifier(), param_grid=param_grid, cv=5)
@@ -322,13 +360,13 @@ Pas la peine de la relancer à chaque fois.
 # %%
 ## Validation croisée pour trouver hyperparamètres pour le modèle SVC -----
 
-tuned_parameters = [{'kernel': ['rbf'], 'gamma': [1e-3, 1e-4],
-                     'C': [1, 10, 100, 1000]},
-                    {'kernel': ['linear'], 'C': [1, 10, 100, 1000]}]
+tuned_parameters = [
+    {"kernel": ["rbf"], "gamma": [1e-3, 1e-4], "C": [1, 10, 100, 1000]},
+    {"kernel": ["linear"], "C": [1, 10, 100, 1000]},
+]
 
 
-CV_rfc3 = GridSearchCV(estimator=SVC(), 
-                      param_grid=tuned_parameters, cv=5)
+CV_rfc3 = GridSearchCV(estimator=SVC(), param_grid=tuned_parameters, cv=5)
 
 CV_rfc3.fit(X_train, y_train)
 opti_param2 = CV_rfc3.best_params_
@@ -338,7 +376,9 @@ print("Les meilleurs hyperparamètres sont " + str(opti_param2))
 # Nous allons maintenant entraîner les deux modèles successivment et évaluer leur pertinence.
 
 # %%
-clf = RandomForestClassifier(criterion="gini", max_depth=8, max_features="auto", n_estimators=200)
+clf = RandomForestClassifier(
+    criterion="gini", max_depth=8, max_features="auto", n_estimators=200
+)
 
 clf.fit(X_train, y_train)
 
@@ -352,7 +392,7 @@ svc_try = SVC(C=10, kernel="linear")
 svc_try.fit(X_train, y_train)
 
 y_pred2 = svc_try.predict(X_test)
-print(classification_report(y_test, y_pred2)) 
+print(classification_report(y_test, y_pred2))
 print("Le score du test est " + str(svc_try.score(X_test, y_test)))
 
 # %% [markdown]
@@ -363,16 +403,30 @@ print("Le score du test est " + str(svc_try.score(X_test, y_test)))
 # %%
 final_pipe = make_pipeline(CountVectorizer(vocabulary=super_liste), TfidfTransformer())
 
-tf_idf_LREM = final_pipe.fit_transform(LREM_df['interventions'].values.astype('U')).toarray()
+tf_idf_LREM = final_pipe.fit_transform(
+    LREM_df["interventions"].values.astype("U")
+).toarray()
 
 LREM_features = pd.DataFrame(tf_idf_LREM)
 
 # %%
 LREM_pred = clf.predict(LREM_features)
 print(collections.Counter(LREM_pred))
-print("Le modèle RFC classe", str(collections.Counter(LREM_pred)[1]), "députés à droite et", str(collections.Counter(LREM_pred)[0]), "à gauche")
+print(
+    "Le modèle RFC classe",
+    str(collections.Counter(LREM_pred)[1]),
+    "députés à droite et",
+    str(collections.Counter(LREM_pred)[0]),
+    "à gauche",
+)
 
 # %%
 LREM_pred2 = svc_try.predict(LREM_features)
 print(collections.Counter(LREM_pred2))
-print("Le modèle SVC classe", str(collections.Counter(LREM_pred2)[1]), "députés à droite et", str(collections.Counter(LREM_pred2)[0]), "à gauche")
+print(
+    "Le modèle SVC classe",
+    str(collections.Counter(LREM_pred2)[1]),
+    "députés à droite et",
+    str(collections.Counter(LREM_pred2)[0]),
+    "à gauche",
+)
