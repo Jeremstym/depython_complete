@@ -211,16 +211,18 @@ print(
 # nous faisons dès maintenant la séparation. Nous avons retenu la proportion
 # *train* / *test* usuelle de 80% / 20%.
 #
-# # %%
-# X = df_spacy.drop("droite", axis=1)
-# y = df_spacy["droite"]
-#
-# X_train, X_test, y_train, y_test = train_test_split(
-#     X, y, test_size=0.2, random_state=42
-# )
-#
-# train = pd.merge(X_train, y_train, left_index=True, right_index=True)
-# test = pd.merge(X_test, y_test, left_index=True, right_index=True)
+
+
+# %%
+X = df_spacy.drop("droite", axis=1)
+y = df_spacy["droite"]
+
+ X_train, X_test, y_train, y_test = train_test_split(
+     X, y, test_size=0.2, random_state=42
+ )
+
+train = pd.merge(X_train, y_train, left_index=True, right_index=True)
+test = pd.merge(X_test, y_test, left_index=True, right_index=True)
 
 
 # %% [markdown] id="p0ZAydeEPCVc"
