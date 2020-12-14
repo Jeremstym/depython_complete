@@ -181,7 +181,7 @@ df_spacy = df_collapsed.assign(interventions=df_collapsed.interventions.str.lowe
 # Tokenisation
 # Commande pour télécharger les données pour la version française de spaCy :
 # python -m spacy download fr_core_news_sm
-sp = spacy.load("fr")
+sp = spacy.load("fr_core_news_sm")
 df_spacy["interventions"] = df_spacy.interventions.apply(lambda x: sp(x))
 
 # %%
@@ -189,10 +189,10 @@ df_spacy["interventions"] = df_spacy.interventions.apply(lambda x: sp(x))
 df_spacy["interventions"] = df_spacy.interventions.apply(
     lambda tokens: [token.lemma_ for token in tokens]
 )
-
+df_zipf = df_spacy.copy()
 # %%
 # Stopwords
-stop_words = sp.Defaults.stop_words | {"'", ",", ";", ":", " "}
+stop_words = sp.Defaults.stop_words | {"'", ",", ";", ":", " ", "", "."}
 
 df_spacy["interventions"] = df_spacy.interventions.apply(
     lambda words: [word for word in words if not word in stop_words]
@@ -203,6 +203,71 @@ df_spacy["interventions"] = df_spacy.interventions.apply(
 print(
     str(df_collapsed.interventions[42]) + "\n ---> \n" + str(df_spacy.interventions[42])
 )
+# %% [markdown]
+# On essaye desormais de faire une analyse des fréquences des mots selon le catégorie droite/gauche et vérifier une potentielle loi de Zipf
+# Dans un premier temps sans enlever les stopwords
+df_spacy
+df_zipf
+import collections
+import re
+import matplotlib.pyplot as plt
+
+# On sépare en deux dataframe une pour chaque catégorie
+df_zipf_droite = df_zipf[df_collapsed["droite"]]
+df_zipf_gauche = df_zipf[df_collapsed["droite"] != True]
+df_spacy_droite = df_spacy[df_collapsed["droite"]]
+df_spacy_gauche = df_spacy[df_collapsed["droite"] != True]
+# Dictionnaries de wordcount
+wordcount_droite = collections.defaultdict(int)
+wordcount_gauche = collections.defaultdict(int)
+for inters in df_zipf_droite["interventions"]:
+    for word in inters:
+        wordcount_droite[word] += 1
+for inters in df_zipf_gauche["interventions"]:
+    for word in inters:
+        wordcount_gauche[word] += 1
+
+# On va afficher les 20 mots les plus populaires pour la gauche
+mc = sorted(wordcount_gauche.items(), key=lambda k_v: k_v[1], reverse=True)[:20]
+mc = dict(mc)
+names = list(mc.keys())
+values = list(mc.values())
+plt.bar(range(len(mc)),values,tick_label=names)
+
+# Même chose pour la droite
+mc = sorted(wordcount_droite.items(), key=lambda k_v: k_v[1], reverse=True)[:20]
+mc = dict(mc)
+names = list(mc.keys())
+values = list(mc.values())
+plt.bar(range(len(mc)),values,tick_label=names)
+
+# On va maintenant voir sans les stopwords
+wordcount_droite = collections.defaultdict(int)
+wordcount_gauche = collections.defaultdict(int)
+for inters in df_spacy_droite["interventions"]:
+    for word in inters:
+        word = re.sub(r"\W", "", word)
+        if word not in stop_words:
+            wordcount_droite[word] += 1
+for inters in df_spacy_gauche["interventions"]:
+    for word in inters:
+        word = re.sub(r"\W", "", word)
+        if word not in stop_words:
+            wordcount_gauche[word] += 1
+
+# On va afficher les 5 mots les plus populaires pour la gauche
+mc = sorted(wordcount_gauche.items(), key=lambda k_v: k_v[1], reverse=True)[:10]
+mc = dict(mc)
+names = list(mc.keys())
+values = list(mc.values())
+plt.bar(range(len(mc)),values,tick_label=names)
+
+# Même chose pour la droite
+mc = sorted(wordcount_droite.items(), key=lambda k_v: k_v[1], reverse=True)[:10]
+mc = dict(mc)
+names = list(mc.keys())
+values = list(mc.values())
+plt.bar(range(len(mc)),values,tick_label=names)
 
 # %% [markdown]
 # Maintenant que le traitement préparatoire des données est terminé, nous
