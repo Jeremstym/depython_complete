@@ -39,6 +39,9 @@ import numpy as np
 import pandas as pd
 import spacy
 
+import collections
+import re
+import matplotlib.pyplot as plt
 
 # %%
 # Si les imports de la cellule suivante ne fonctionnent pas,
@@ -211,80 +214,7 @@ df_spacy["interventions"] = df_spacy.interventions.apply(
 print(
     str(df_collapsed.interventions[42]) + "\n ---> \n" + str(df_spacy.interventions[42])
 )
-# %% [markdown]
-# On essaye desormais de faire une analyse des fréquences des mots selon le catégorie droite/gauche et vérifier une potentielle loi de Zipf
-# Dans un premier temps sans enlever les stopwords
 
-
-# %%
-import collections
-import re
-import matplotlib.pyplot as plt
-
-# %%
-# On sépare en deux dataframe une pour chaque catégorie et on fait de même avec la dataframe spacy travaillée juste avant
-df_zipf_droite = df_zipf[df_zipf["droite"]]
-df_zipf_gauche = df_zipf[df_zipf["droite"] != True]
-df_spacy_droite = df_spacy[df_spacy["droite"]]
-df_spacy_gauche = df_spacy[df_spacy["droite"] != True]
-# %%
-# Dictionnaries de wordcount
-wordcount_droite = collections.defaultdict(int)
-wordcount_gauche = collections.defaultdict(int)
-for inters in df_zipf_droite["interventions"]:
-    for word in inters:
-        wordcount_droite[word] += 1
-for inters in df_zipf_gauche["interventions"]:
-    for word in inters:
-        wordcount_gauche[word] += 1
-
-# %%
-# On va afficher les 20 mots les plus populaires pour la gauche et la droite en comptant les stopwords
-fig, axs = plt.subplots(2, 1, figsize=(15, 10))
-fig.suptitle("Fréquences d'utilisation des mots dans les allocutions pour chaque bords politiques")
-mcg = sorted(wordcount_gauche.items(), key=lambda k_v: k_v[1], reverse=True)[:20]
-mcg = dict(mcg)
-namesg = list(mcg.keys())
-valuesg = list(mcg.values())
-axs[0].bar(range(len(mcg)),valuesg,tick_label=namesg, color='red')
-axs[0].set_title('Pour la gauche')
-mcd = sorted(wordcount_droite.items(), key=lambda k_v: k_v[1], reverse=True)[:20]
-mcd = dict(mcd)
-namesd = list(mcd.keys())
-valuesd = list(mcd.values())
-axs[1].bar(range(len(mcd)),valuesd,tick_label=namesd, color='blue')
-axs[1].set_title('Pour la droite :')
-# %%
-# On va maintenant voir sans les stopwords
-wordcount_droite = collections.defaultdict(int)
-wordcount_gauche = collections.defaultdict(int)
-for inters in df_spacy_droite["interventions"]:
-    for word in inters:
-        word = re.sub(r"\W", "", word)
-        if word not in stop_words:
-            wordcount_droite[word] += 1
-for inters in df_spacy_gauche["interventions"]:
-    for word in inters:
-        word = re.sub(r"\W", "", word)
-        if word not in stop_words:
-            wordcount_gauche[word] += 1
-
-# %%
-# On va afficher les 10 mots les plus populaires pour la gauche et la droite
-fig, axs = plt.subplots(2, 1, figsize=(20, 10))
-fig.suptitle("Fréquences d'utilisation des mots dans les allocutions pour chaque bords politiques sans stopwords,")
-mcg = sorted(wordcount_gauche.items(), key=lambda k_v: k_v[1], reverse=True)[:20]
-mcg = dict(mcg)
-namesg = list(mcg.keys())
-valuesg = list(mcg.values())
-axs[0].bar(range(len(mcg)),valuesg,tick_label=namesg, color='red')
-axs[0].set_title('Pour la gauche')
-mcd = sorted(wordcount_droite.items(), key=lambda k_v: k_v[1], reverse=True)[:20]
-mcd = dict(mcd)
-namesd = list(mcd.keys())
-valuesd = list(mcd.values())
-axs[1].bar(range(len(mcd)),valuesd,tick_label=namesd, color='blue')
-axs[1].set_title('Pour la droite :')
 
 # %% [markdown]
 # Maintenant que le traitement préparatoire des données est terminé, nous
@@ -312,13 +242,89 @@ X_train, X_test, y_train, y_test = [
 ]
 
 # %% [markdown] id="p0ZAydeEPCVc"
-# ## Analyse descriptive des données
+# # Analyse descriptive des données (Visualisation)
 #
-# Nous allons maintenant dans cette partie visualiser les tendances dans les différents partis, ainsi que les mots qui sont les plus utilisés. Nous commençons par le wordcloud.
-# Avant toutes choses, nous importons et complétons un texte de stopwords pour retirer tous les mots impertinents de la visualisation, et de la modélisation à suivre.
+# Nous allons maintenant dans cette partie visualiser les tendances dans les différents partis, ainsi que les mots qui sont les plus utilisés. Nous commençons par la loi Zipf, en regardant quels mots sont les plus employés par les partis de droite et de gauche.
+#
+# On essaye de faire une analyse des fréquences des mots selon le catégorie droite/gauche et vérifier une potentielle loi de Zipf
+# Dans un premier temps sans enlever les stopwords
+
+
 
 # %%
-# Création d'un stopwords
+# On sépare en deux dataframe une pour chaque catégorie et on fait de même avec la dataframe spacy travaillée juste avant
+df_zipf_droite = df_zipf[df_zipf["droite"]]
+df_zipf_gauche = df_zipf[df_zipf["droite"] != True]
+df_spacy_droite = df_spacy[df_spacy["droite"]]
+df_spacy_gauche = df_spacy[df_spacy["droite"] != True]
+# %%
+# Dictionnaries de wordcount
+wordcount_droite = collections.defaultdict(int)
+wordcount_gauche = collections.defaultdict(int)
+for inters in df_zipf_droite["interventions"]:
+    for word in inters:
+        wordcount_droite[word] += 1
+for inters in df_zipf_gauche["interventions"]:
+    for word in inters:
+        wordcount_gauche[word] += 1
+
+# %%
+# On va afficher les 20 mots les plus populaires pour la gauche et la droite en comptant tous les mots
+fig, axs = plt.subplots(2, 1, figsize=(15, 10))
+fig.suptitle("Fréquences d'utilisation des mots dans les allocutions pour chaque bords politiques")
+mcg = sorted(wordcount_gauche.items(), key=lambda k_v: k_v[1], reverse=True)[:20]
+mcg = dict(mcg)
+namesg = list(mcg.keys())
+valuesg = list(mcg.values())
+axs[0].bar(range(len(mcg)),valuesg,tick_label=namesg, color='red')
+axs[0].set_title('Pour la gauche')
+mcd = sorted(wordcount_droite.items(), key=lambda k_v: k_v[1], reverse=True)[:20]
+mcd = dict(mcd)
+namesd = list(mcd.keys())
+valuesd = list(mcd.values())
+axs[1].bar(range(len(mcd)),valuesd,tick_label=namesd, color='blue')
+axs[1].set_title('Pour la droite :')
+# %%
+# On va maintenant voir le résultat avec une liste de stopwords
+wordcount_droite = collections.defaultdict(int)
+wordcount_gauche = collections.defaultdict(int)
+for inters in df_spacy_droite["interventions"]:
+    for word in inters:
+        word = re.sub(r"\W", "", word)
+        if word not in stop_words:
+            wordcount_droite[word] += 1
+for inters in df_spacy_gauche["interventions"]:
+    for word in inters:
+        word = re.sub(r"\W", "", word)
+        if word not in stop_words:
+            wordcount_gauche[word] += 1
+            
+from IPython.display import Image
+Image(filename='Tweets_Frequence.png')
+
+# %%
+# On va afficher les 10 mots les plus populaires pour la gauche et la droite
+fig, axs = plt.subplots(2, 1, figsize=(20, 10))
+fig.suptitle("Fréquences d'utilisation des mots dans les allocutions pour chaque bords politiques sans stopwords,")
+mcg = sorted(wordcount_gauche.items(), key=lambda k_v: k_v[1], reverse=True)[:20]
+mcg = dict(mcg)
+namesg = list(mcg.keys())
+valuesg = list(mcg.values())
+axs[0].bar(range(len(mcg)),valuesg,tick_label=namesg, color='red')
+axs[0].set_title('Pour la gauche')
+mcd = sorted(wordcount_droite.items(), key=lambda k_v: k_v[1], reverse=True)[:20]
+mcd = dict(mcd)
+namesd = list(mcd.keys())
+valuesd = list(mcd.values())
+axs[1].bar(range(len(mcd)),valuesd,tick_label=namesd, color='blue')
+axs[1].set_title('Pour la droite :')
+
+# %% [markdown]
+#
+# Nous allons maintenant visualiser les mots les plus utilisés de manière plus intuitive. À l'aide du module **wordcloud**, il est possible de visualiser quels sont les mots les plus utilisés par un député.
+
+# %%
+# Création d'un stopwords à partir d'un fichier txt. téléchargé et complété.
 
 stopping_list = request.urlopen(
     "https://raw.githubusercontent.com/rturquier/depythons/main/stopwords-fr.txt"
@@ -335,23 +341,25 @@ from wordcloud_depython import wordcloud_gen
 # %% id="OU4eFFXUPCVe" outputId="ab16e9fe-7214-45f6-e213-407f17829ccd"
 wordcloud_gen("Jean-Luc Mélenchon"), wordcloud_gen("Eric Ciotti")
 
-# %% [markdown] id="O-RmXt3xPCVf"
-# ### Liste de mots customisée
-#
-# Nous avons créé deux fonction qui permettent de retourner les mots les plus utilisés par les membres d'un parti. Cette liste de mots va nous servir pour modéliser les champs lexicaux (quel parti a le plus tendance à utiliser tel mot ?). Nous créons cette liste de 144 mots sous le nom de *super_liste*.
-
-# %%
-from custom_words import super_liste
 
 # %% [markdown] id="I0lSH6JWPCVh" outputId="a243f78a-7908-4342-b754-89bfd768da17"
-# # Modéslisation
+# # Modélisation
+# 
+# Nous passons maintenant à la partie modélisation. Pour cela, nous utilisons
+# les données que nous avons manipulées jusqu'ici. Nous commençons d'abord par
+# du **Features Engineering** en créant une matrice *TF-IDF* pour entraîner
+# les modèles.
 #
-
-
-# %% [markdown]
-# #### Deuxième étape
+# Les deux modèles que nous avons choisis sont **Random Forest Classifier** et
+# **SVC**. Ils vont nous permettre de comparer les résultats et les scores 
+# obtenus. 
 #
-# Nous allons maintenant créer les matrices **Tf-Idf** qui vont nous servir pour les modèles.
+# À chaque fois, nous nous effectuons une **validation croisée** pour déterminer
+# quels sont les meilleurs hyperparamètres, avant d'entaîner les modèles.
+#
+# Enfin, nous finissons par utiliser les modèles pour prédire à quel bord 
+# politique appartiennent les députés LREM.  
+
 
 # %%
 # Voici tous les imports qui sont nécessaires pour cette partie et la suite
