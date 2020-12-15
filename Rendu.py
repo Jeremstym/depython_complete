@@ -223,10 +223,10 @@ import matplotlib.pyplot as plt
 
 # %%
 # On sépare en deux dataframe une pour chaque catégorie et on fait de même avec la dataframe spacy travaillée juste avant
-df_zipf_droite = df_zipf[df_collapsed["droite"]]
-df_zipf_gauche = df_zipf[df_collapsed["droite"] != True]
-df_spacy_droite = df_spacy[df_collapsed["droite"]]
-df_spacy_gauche = df_spacy[df_collapsed["droite"] != True]
+df_zipf_droite = df_zipf[df_zipf["droite"]]
+df_zipf_gauche = df_zipf[df_zipf["droite"] != True]
+df_spacy_droite = df_spacy[df_spacy["droite"]]
+df_spacy_gauche = df_spacy[df_spacy["droite"] != True]
 # %%
 # Dictionnaries de wordcount
 wordcount_droite = collections.defaultdict(int)
