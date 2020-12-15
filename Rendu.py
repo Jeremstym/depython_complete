@@ -27,7 +27,7 @@
 #
 # L'objectif principal consiste à entraîner un ou plusieurs modèles sur les députés appartenant à des partis étant traditionnellement reconnus de gauche (PS, LFI) et de droite (LR), puis essayer de prédire cette classfication sur le parti LREM qui se situe entre les deux bords.
 #
-# Nous avons prélevé les textes depuis deux sources : une première manière à consister en utilisant les interventions des députés à l'Assemblée (nous avons utiliser l'API venant du site [nosdeputes.fr](https://www.nosdeputes.fr/), puis scrappé les discours d'un député ciblé. Nous avons également scrappé Twitter pour retrouver les tweets des députés et diversifier ainsi nos sources.
+# Nous avons prélevé les textes depuis deux sources : une première manière a consister en utilisant les interventions des députés à l'Assemblée (nous avons utilisé l'API venant du site [nosdeputes.fr](https://www.nosdeputes.fr/), puis scrappé les discours d'un député ciblé. Nous avons également scrappé Twitter pour retrouver les tweets des députés et diversifier ainsi nos sources.
 #
 # Dans ce Notebook, nous utilisons à plusieurs reprises des modules que nous avons codés par ailleurs et déposés sur Github. Ces modules utilisent des packages comme **wordcloud**, **unidecode**, **warnings** et **fuzzywuzzy** qu'il faudrait préalablement installer pour pouvoir tout lire.
 
@@ -337,7 +337,7 @@ stopping_list = request.urlopen(
 stopping_list = stopping_list.decode("utf-8")
 stopwords_list = stopping_list.split("\n")
 
-# %% id="AhEb0zObPCVd"
+# %% id="AhEb0zObPCVd" jupyter={"outputs_hidden": true}
 from wordcloud_depython import wordcloud_gen
 
 # %% [markdown] id="esjyOFUXPCVe"
@@ -366,7 +366,7 @@ wordcloud_gen("Jean-Luc Mélenchon"), wordcloud_gen("Eric Ciotti")
 # politique appartiennent les députés LREM.
 
 
-# %%
+# %% jupyter={"outputs_hidden": true}
 # Voici tous les imports qui sont nécessaires pour cette partie et la suite
 
 import collections
@@ -431,14 +431,14 @@ tf_idf = TfidfVectorizer(
 )
 
 
-# %%
+# %% jupyter={"outputs_hidden": true}
 # Création des features avec tf-idf
 X_train_tf_idf = tf_idf.fit_transform(X_train["interventions"])
 
 # Quelques features retenues :
 tf_idf.get_feature_names()[::10]
 
-# %%
+# %% jupyter={"outputs_hidden": true}
 # Ajout des features tf_idf à la longueur des interventions
 X_train_tf_idf = pd.DataFrame.sparse.from_spmatrix(X_train_tf_idf)
 X_train = (X_train.merge(X_train_tf_idf, left_index = True, right_index = True)
@@ -455,7 +455,7 @@ X_train = scaler.fit_transform(X_train)
 # * D'abord le modèle RandomForestClassifier
 # * Ensuite le modèle SVC
 
-# %%
+# %% jupyter={"outputs_hidden": true}
 ### Validation croisée pour le RandomForestClassifier
 param_grid_rfc = {
     "n_estimators": [200, 500],
@@ -534,13 +534,13 @@ X_test = scaler.transform(X_test)
 # Nous pouvons maintenant appliquer nos modèles aux données de test, et évaluer
 # leur erreur de généralisation.
 
-# %%
+# %% jupyter={"outputs_hidden": true}
 y_pred_clf = clf.predict(X_test)
 
 print(classification_report(y_test, y_pred_clf))
 print("Le score du test est " + str(clf.score(X_test, y_test_clf)))
 
-# %%
+# %% jupyter={"outputs_hidden": true}
 
 
 y_pred_svc = svc.predict(X_test)
@@ -556,7 +556,7 @@ print("Le score du test est " + str(svc.score(X_test, y_test_svc)))
 # Nous regardons maintenant quel classfication effectue le modèle sur le parti LREM.
 # Premièrement, nous transformons d'abord la matrice LREM.
 
-# %%
+# %% jupyter={"outputs_hidden": true}
 final_pipe = make_pipeline(CountVectorizer(vocabulary=super_liste), TfidfTransformer())
 
 tf_idf_LREM = final_pipe.fit_transform(
