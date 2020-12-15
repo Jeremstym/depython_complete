@@ -21,9 +21,16 @@ jupyter:
 <!-- #region id="AyDgk7w54dfJ" -->
 #### Projet informatique - Python pour le data scientist
 ##### Jérémie Stym-Popper, Luca Teodorescu, Rémi Turquier
-# _La République en Marche_ est-elle de gauche ou de droite ?
+# Peut-on prédire l'appartenance politique selon le discours des députés ?
 
-[Titre provisoire]
+
+Ce projet consiste à effectuer du *Natural Language Processing* sur le discours que tiennent les députés parlementaires.
+
+L'objectif principal consiste à entraîner un ou plusieurs modèles sur les députés appartenant à des partis étant traditionnellement reconnus de gauche (PS, LFI) et de droite (LR), puis essayer de prédire cette classfication sur le parti LREM qui se situe entre les deux bords. 
+
+Nous avons prélevé les textes depuis deux sources : une première manière à consister en utilisant les interventions des députés à l'Assemblée (nous avons utiliser l'API venant du site [nosdeputes.fr](https://www.nosdeputes.fr/), puis scrappé les discours d'un député ciblé. Nous avons également scrappé Twitter pour retrouver les tweets des députés et diversifier ainsi nos sources.
+
+Dans ce Notebook, nous utilisons à plusieurs reprises des modules que nous avons codés par ailleurs et déposés sur Github. Ces modules utilisent des packages comme **wordcloud**, **unidecode**, **warnings** et **fuzzywuzzy** qu'il faudrait préalablement installer pour pouvoir tout lire.
 <!-- #endregion -->
 
 ```python id="u6CCHVOX7XDx"
@@ -33,9 +40,8 @@ from urllib import request
 import numpy as np
 import pandas as pd
 import spacy
-
-from sklearn.model_selection import train_test_split
 ```
+
 
 ```python
 # Si les imports de la cellule suivante ne fonctionnent pas,
@@ -147,6 +153,8 @@ n_droite_n_gauche(df_tidy)
 ```
 
 
+Le nombre d'interventions est bien équilibré.
+
 ### Longueur des interventions et regroupement par groupes de 5 interventions
 
 ```python
@@ -199,7 +207,7 @@ df_spacy = df_collapsed.assign(interventions=df_collapsed.interventions.str.lowe
 # Tokenisation
 # Commande pour télécharger les données pour la version française de spaCy :
 # python -m spacy download fr_core_news_sm
-sp = spacy.load("fr")
+sp = spacy.load("fr_core_news_sm")
 df_spacy["interventions"] = df_spacy.interventions.apply(lambda x: sp(x))
 ```
 
@@ -208,11 +216,11 @@ df_spacy["interventions"] = df_spacy.interventions.apply(lambda x: sp(x))
 df_spacy["interventions"] = df_spacy.interventions.apply(
     lambda tokens: [token.lemma_ for token in tokens]
 )
+df_zipf = df_spacy.copy()
 ```
-
 ```python
 # Stopwords
-stop_words = sp.Defaults.stop_words | {"'", ",", ";", ":", " "}
+stop_words = sp.Defaults.stop_words | {"'", ",", ";", ":", " ", "", "."}
 
 df_spacy["interventions"] = df_spacy.interventions.apply(
     lambda words: [word for word in words if not word in stop_words]
@@ -225,6 +233,83 @@ print(
     str(df_collapsed.interventions[42]) + "\n ---> \n" + str(df_spacy.interventions[42])
 )
 ```
+On essaye desormais de faire une analyse des fréquences des mots selon le catégorie droite/gauche et vérifier une potentielle loi de Zipf
+Dans un premier temps sans enlever les stopwords
+df_spacy
+df_zipf
+import collections
+import re
+import matplotlib.pyplot as plt
+
+```python
+# On sépare en deux dataframe une pour chaque catégorie et on fait de même avec la dataframe spacy travaillée juste avant
+df_zipf_droite = df_zipf[df_collapsed["droite"]]
+df_zipf_gauche = df_zipf[df_collapsed["droite"] != True]
+df_spacy_droite = df_spacy[df_collapsed["droite"]]
+df_spacy_gauche = df_spacy[df_collapsed["droite"] != True]
+```
+```python
+# Dictionnaries de wordcount
+wordcount_droite = collections.defaultdict(int)
+wordcount_gauche = collections.defaultdict(int)
+for inters in df_zipf_droite["interventions"]:
+    for word in inters:
+        wordcount_droite[word] += 1
+for inters in df_zipf_gauche["interventions"]:
+    for word in inters:
+        wordcount_gauche[word] += 1
+```
+
+```python
+# On va afficher les 20 mots les plus populaires pour la gauche et la droite en comptant les stopwords
+fig, axs = plt.subplots(2, 1, figsize=(15, 10))
+fig.suptitle("Fréquences d'utilisation des mots dans les allocutions pour chaque bords politiques")
+mcg = sorted(wordcount_gauche.items(), key=lambda k_v: k_v[1], reverse=True)[:20]
+mcg = dict(mcg)
+namesg = list(mcg.keys())
+valuesg = list(mcg.values())
+axs[0].bar(range(len(mcg)),valuesg,tick_label=namesg, color='red')
+axs[0].set_title('Pour la gauche')
+mcd = sorted(wordcount_droite.items(), key=lambda k_v: k_v[1], reverse=True)[:20]
+mcd = dict(mcd)
+namesd = list(mcd.keys())
+valuesd = list(mcd.values())
+axs[1].bar(range(len(mcd)),valuesd,tick_label=namesd, color='blue')
+axs[1].set_title('Pour la droite :')
+```
+```python
+# On va maintenant voir sans les stopwords
+wordcount_droite = collections.defaultdict(int)
+wordcount_gauche = collections.defaultdict(int)
+for inters in df_spacy_droite["interventions"]:
+    for word in inters:
+        word = re.sub(r"\W", "", word)
+        if word not in stop_words:
+            wordcount_droite[word] += 1
+for inters in df_spacy_gauche["interventions"]:
+    for word in inters:
+        word = re.sub(r"\W", "", word)
+        if word not in stop_words:
+            wordcount_gauche[word] += 1
+```
+
+```python
+# On va afficher les 10 mots les plus populaires pour la gauche et la droite
+fig, axs = plt.subplots(2, 1, figsize=(20, 10))
+fig.suptitle("Fréquences d'utilisation des mots dans les allocutions pour chaque bords politiques sans stopwords,")
+mcg = sorted(wordcount_gauche.items(), key=lambda k_v: k_v[1], reverse=True)[:20]
+mcg = dict(mcg)
+namesg = list(mcg.keys())
+valuesg = list(mcg.values())
+axs[0].bar(range(len(mcg)),valuesg,tick_label=namesg, color='red')
+axs[0].set_title('Pour la gauche')
+mcd = sorted(wordcount_droite.items(), key=lambda k_v: k_v[1], reverse=True)[:20]
+mcd = dict(mcd)
+namesd = list(mcd.keys())
+valuesd = list(mcd.values())
+axs[1].bar(range(len(mcd)),valuesd,tick_label=namesd, color='blue')
+axs[1].set_title('Pour la droite :')
+```
 
 Maintenant que le traitement préparatoire des données est terminé, nous
 pouvons passer aux parties exploration et modélisation. Pour éviter toute
@@ -235,17 +320,21 @@ nous faisons dès maintenant la séparation. Nous avons retenu la proportion
 
 
 ```python
+from sklearn.model_selection import train_test_split
+
 X = df_spacy.drop("droite", axis=1)
 y = df_spacy["droite"]
 
- X_train, X_test, y_train, y_test = train_test_split(
+# L'argument `random_state` permet d'obtenir des résultats reproductibles.
+split_list = train_test_split(
      X, y, test_size=0.2, random_state=42
- )
+)
 
-train = pd.merge(X_train, y_train, left_index=True, right_index=True)
-test = pd.merge(X_test, y_test, left_index=True, right_index=True)
+# Réindexer maintenant pour éviter des soucis au moment du tf-idf
+X_train, X_test, y_train, y_test = [
+    df.reset_index().drop(columns = ["index"]) for df in split_list
+]
 ```
-
 
 <!-- #region id="p0ZAydeEPCVc" -->
 ## Analyse descriptive des données
@@ -289,32 +378,8 @@ from custom_words import super_liste
 <!-- #region id="I0lSH6JWPCVh" outputId="a243f78a-7908-4342-b754-89bfd768da17" -->
 # Modéslisation
 
-Nous passons maintenant à la partie de la modélisation. Nous avons pour cela procédé en plusieurs espace.
-1. La première consiste en la création d'une table *df_simple* qui regroupe uniquement les partis de gauche classiques (Socisalites et LFI) et le parti LR. Nous rajoutons une colonne "droite" qui renvoie **True** si le parti est de droite (LR ici), **False** sinon. Cela permettra après d'entraîner le modèle supervisé, le label étant donné par cette colonne.
-2. La deuxième étape consiste à transfomrer le DataFrame contenant "Parti politique", "Nom du député" et "Interventions" en une matrice **TF-IDF**. Les détails seront donnés plus bas.
-3. La deuxième étape consiste à entraîner deux modèles (ici, **RandomForestClassifier** et **SVC**) sur les données, en évaluant à chaque fois quels sont les meileurs hyperparamètres à l'aide de la méthode de validation croisée.
-4. La dernière étape consiste à exécuter le modèle sur les députés du parti LREM pour prédire à quel bord politique ils pourraient potentiellement appartenir, commte tenu des mots les plus courants de leurs interventions.
 <!-- #endregion -->
 
-#### Première étape
-Nous créons d'abord la matrice df_simple
-
-```python
-data_url = (
-    "https://raw.githubusercontent.com/rturquier/depythons/main/Stock_csv/gd2_inter.csv"
-)
-df_brut = pd.read_csv(data_url)
-df_brut.sample(n=5)
-
-# Création d'une indicatrice `droite` qui sera la cible de la classification
-df_brut = df_brut.assign(droite=df_brut["groupe"] == "LR").sort_values(
-    by=["droite"], ascending=False
-)
-df_brut.head()
-
-df_simple = df_brut.assign(droite=df_brut["groupe"] == "LR")
-df_simple
-```
 
 #### Deuxième étape
 
@@ -328,7 +393,9 @@ import collections
 from sklearn.pipeline import make_pipeline
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.feature_extraction.text import TfidfTransformer
+from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.model_selection import GridSearchCV
+from sklearn.preprocessing import StandardScaler
 
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestClassifier
@@ -338,26 +405,70 @@ from sklearn.metrics import classification_report
 LREM_df = pd.read_csv(
     "https://raw.githubusercontent.com/rturquier/depythons/main/Stock_csv/LREM2_inter.csv"
 )
+
+
 ```
 
-Nous créons une matrice td-idf pour le DataFrame gd_df, puis nous séparons les lignes en un échantillon d'entraînement et un échantillon de test.
-Ensuite nous effectuons la même chose avec le DataFrame df_simple.
+**Définition du Tfidf**
+Tfidf est une manière de transformer un corpus de texte en features. Chaque
+mot a d'autant plus de poids qu'il est relativement fréquent dans un paquet
+de 5 interventions par rapport aux autres paquet. Par exemple, un mot qui
+apparait souvent, mais dans uniformément n'a pas beaucoup d'importance.
+
+Comme la partie IDF (*Inverse Document Frequence*) utilise de l'information
+de tout le corpus, il était important de séparer les données d'entrainement
+des données de test avant d'appliquer tf-idf, dans cette [question StackOverflow](https://stackoverflow.com/questions/47778403/computing-tf-idf-on-the-whole-dataset-or-only-on-training-data).
+
+Nous nous sommes rendu compte qu'utiliser *tous* les mots des interventions
+(hormis les *stopwords*) conduisait à un sur-apprentissage. Cela est du au
+fait que nous avons un nombre de données inférieur au nombre potentiel de
+features créées par tf-idf.
+
+Nous avons testé deux façons de limiter le nombre de features :
+1. créer une liste de mots limitée à la main, et utiliser l'argument `vocabulary` de `TfidfVectorizer`
+2. utiliser le paramètre `max_features`
+
+Le code qui a servi à la première approche se trouve dans le fichier
+`custom_words.py`. Nous avons finalement retenu la seconde approche, qui
+tire meilleur parti des outils de NLP.
+
 
 ```python
-pipe_idf = make_pipeline(CountVectorizer(vocabulary=super_liste), TfidfTransformer())
+# On crée d'abord une fonction vide, qui permet de dire au `TfidfVectorizer`
+# que nous avons déjà pré-traité le texte.
 
-tf_idf_simple = pipe_idf2.fit_transform(
-    df_simple["interventions"].values.astype("U")
-).toarray()
+def dummy_fun(doc):
+    return doc
 
-simple_features = pd.DataFrame(tf_idf_simple, index=df_simple["droite"])
-simple_features = simple_features.reset_index()  # Pour que 'groupe' devienne la target
+tf_idf = TfidfVectorizer(
+    analyzer = 'word',
+    tokenizer = dummy_fun,
+    preprocessor = dummy_fun,
+    token_pattern = None,
+    # vocabulary = super_liste
+    max_features = 150
+)
+```
 
-y = simple_features["droite"]
-X = simple_features.drop("droite", axis=1)
 
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.20)
-simple_features
+```python
+# Création des features avec tf-idf
+X_train_tf_idf = tf_idf.fit_transform(X_train["interventions"])
+
+# Quelques features retenues :
+tf_idf.get_feature_names()[::10]
+```
+
+```python
+# Ajout des features tf_idf à la longueur des interventions
+X_train_tf_idf = pd.DataFrame.sparse.from_spmatrix(X_train_tf_idf)
+X_train = (X_train.merge(X_train_tf_idf, left_index = True, right_index = True)
+            .drop(columns = ["interventions"])
+)
+
+# Scaling
+scaler = StandardScaler()
+X_train = scaler.fit_transform(X_train)
 ```
 
 #### Troisième étape
@@ -366,67 +477,98 @@ Nous allons maintenant évaluer quels sont les meilleurs hyperparamètres pour c
 * Ensuite le modèle SVC
 
 ```python
-###---- Évaluation des hyperparamètres avec validation croisée pour le RandomForestClassifier -----
-param_grid = {
+### Validation croisée pour le RandomForestClassifier
+param_grid_rfc = {
     "n_estimators": [200, 500],
     "max_features": ["auto", "sqrt", "log2"],
     "max_depth": [4, 5, 6, 7, 8],
     "criterion": ["gini", "entropy"],
 }
 
-CV_rfc2 = GridSearchCV(estimator=RandomForestClassifier(), param_grid=param_grid, cv=5)
+CV_rfc = GridSearchCV(estimator=RandomForestClassifier(), param_grid=param_grid, cv=5)
 
-CV_rfc2.fit(X_train, y_train)
-opti_param1 = CV_rfc2.best_params_
+CV_rfc.fit(X_train, y_train)
+opti_param_rfc = CV_rfc.best_params_
 
 """
 La fonction met du temps à s'exécuter. Voici les paramètres qu'elle trouve
 {'criterion': 'gini',
- 'max_depth': 8,
- 'max_features': 'auto',
+ 'max_depth': 6,
+ 'max_features': 'sqrt',
  'n_estimators': 200}
 Pas la peine de la relancer à chaque fois.
 """
 ```
 
 ```python
-## Validation croisée pour trouver hyperparamètres pour le modèle SVC -----
+## Validation croisée pour trouver les hyperparamètres pour le modèle SVC
 
-tuned_parameters = [
+param_grid_svc = [
     {"kernel": ["rbf"], "gamma": [1e-3, 1e-4], "C": [1, 10, 100, 1000]},
     {"kernel": ["linear"], "C": [1, 10, 100, 1000]},
 ]
 
 
-CV_rfc3 = GridSearchCV(estimator=SVC(), param_grid=tuned_parameters, cv=5)
+CV_svc = GridSearchCV(estimator=SVC(), param_grid=param_grid_svc, cv=5)
 
-CV_rfc3.fit(X_train, y_train)
-opti_param2 = CV_rfc3.best_params_
-print("Les meilleurs hyperparamètres sont " + str(opti_param2))
+CV_svc.fit(X_train, y_train)
+opti_param_svc = CV_svc.best_params_
+print("Les meilleurs hyperparamètres sont " + str(opti_param_svc))
 ```
 
-Nous allons maintenant entraîner les deux modèles successivment et évaluer leur pertinence.
+Nous allons maintenant entraîner les deux modèles successivment.
 
 ```python
-clf = RandomForestClassifier(
-    criterion="gini", max_depth=8, max_features="auto", n_estimators=200
-)
+# Mettre `y_train` au bon format
+y_train = y_train.values.ravel()
 
+# Entrainement de la forêt aléatoire
+clf = RandomForestClassifier(
+    criterion="gini", max_depth=6, max_features="sqrt", n_estimators=200
+)
 clf.fit(X_train, y_train)
 
-y_pred = clf.predict(X_test)
+# Entrainement de la machine à vecteur de support (SVC)
+svc = SVC(C=1000, gamma = 0.0001, kernel="rbf")
+svc.fit(X_train, y_train)
+```
 
-print(classification_report(y_test, y_pred))
-print("Le score du test est " + str(clf.score(X_test, y_test)))
+Avant de pouvoir évaluer l'erreur de généralisation, il faut appliquer
+quelques transformations aux données de test.
+Ici, on applique uniquement la méthode `transform` des Transformers, la
+méthode `fit` étant réservée à l'étape d'entrainement.
+
+```python
+# tf-idf
+X_test_tf_idf = tf_idf.transform(X_test["interventions"])
+
+X_test_tf_idf = pd.DataFrame.sparse.from_spmatrix(X_test_tf_idf)
+X_test = (X_test.merge(X_test_tf_idf, left_index = True, right_index = True)
+            .drop(columns = ["interventions"])
+)
+
+# Scaling
+X_test = scaler.transform(X_test)
+
+
+```
+
+Nous pouvons maintenant appliquer nos modèles aux données de test, et évaluer
+leur erreur de généralisation.
+
+```python
+y_pred_clf = clf.predict(X_test)
+
+print(classification_report(y_test, y_pred_clf))
+print("Le score du test est " + str(clf.score(X_test, y_test_clf)))
 ```
 
 ```python
-svc_try = SVC(C=10, kernel="linear")
-svc_try.fit(X_train, y_train)
 
-y_pred2 = svc_try.predict(X_test)
-print(classification_report(y_test, y_pred2))
-print("Le score du test est " + str(svc_try.score(X_test, y_test)))
+
+y_pred_svc = svc.predict(X_test)
+print(classification_report(y_test, y_pred_svc))
+print("Le score du test est " + str(svc.score(X_test, y_test_svc)))
 ```
 
 #### Quatrième étape
@@ -456,7 +598,7 @@ print(
 ```
 
 ```python
-LREM_pred2 = svc_try.predict(LREM_features)
+LREM_pred2 = svc.predict(LREM_features)
 print(collections.Counter(LREM_pred2))
 print(
     "Le modèle SVC classe",
