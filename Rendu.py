@@ -285,6 +285,7 @@ namesd = list(mcd.keys())
 valuesd = list(mcd.values())
 axs[1].bar(range(len(mcd)),valuesd,tick_label=namesd, color='blue')
 axs[1].set_title('Pour la droite :')
+plt.show()
 # %%
 # On va maintenant voir le résultat avec une liste de stopwords
 wordcount_droite = collections.defaultdict(int)
@@ -318,16 +319,13 @@ namesd = list(mcd.keys())
 valuesd = list(mcd.values())
 axs[1].bar(range(len(mcd)),valuesd,tick_label=namesd, color='blue')
 axs[1].set_title('Pour la droite :')
+plt.show()
 
 
 # %%
 # On a fait le même travail dans visualisation_twitter.py sur une base de donnée twitter scrappé avec notre fichier twitter.py à titre de comparaison
 from IPython.display import Image
 Image(filename='Tweets_Frequence.png')
-
-
-# Mettre `y_train` au bon format
-y_train = y_train.values.ravel()
 
 
 # %% [markdown] id="p0ZAydeEPCVc"
