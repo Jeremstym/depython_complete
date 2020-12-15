@@ -43,6 +43,7 @@ import collections
 import re
 import matplotlib.pyplot as plt
 
+
 # %%
 # Si les imports de la cellule suivante ne fonctionnent pas,
 # on peut exécuter ces lignes :
@@ -214,8 +215,6 @@ df_spacy["interventions"] = df_spacy.interventions.apply(
 print(
     str(df_collapsed.interventions[42]) + "\n ---> \n" + str(df_spacy.interventions[42])
 )
-
-
 # %% [markdown]
 # Maintenant que le traitement préparatoire des données est terminé, nous
 # pouvons passer aux parties exploration et modélisation. Pour éviter toute
@@ -248,8 +247,8 @@ X_train, X_test, y_train, y_test = [
 #
 # On essaye de faire une analyse des fréquences des mots selon le catégorie droite/gauche et vérifier une potentielle loi de Zipf
 # Dans un premier temps sans enlever les stopwords
-
-
+#
+#
 
 # %%
 # On sépare en deux dataframe une pour chaque catégorie et on fait de même avec la dataframe spacy travaillée juste avant
@@ -298,9 +297,8 @@ for inters in df_spacy_gauche["interventions"]:
         word = re.sub(r"\W", "", word)
         if word not in stop_words:
             wordcount_gauche[word] += 1
-            
-from IPython.display import Image
-Image(filename='Tweets_Frequence.png')
+
+
 
 # %%
 # On va afficher les 10 mots les plus populaires pour la gauche et la droite
@@ -318,6 +316,13 @@ namesd = list(mcd.keys())
 valuesd = list(mcd.values())
 axs[1].bar(range(len(mcd)),valuesd,tick_label=namesd, color='blue')
 axs[1].set_title('Pour la droite :')
+
+
+# %%
+# On a fait le même travail dans visualisation_twitter.py sur une base de donnée twitter scrappé avec notre fichier twitter.py à titre de comparaison
+from IPython.display import Image
+Image(filename='Tweets_Frequence.png')
+
 
 # %% [markdown]
 #
@@ -344,21 +349,21 @@ wordcloud_gen("Jean-Luc Mélenchon"), wordcloud_gen("Eric Ciotti")
 
 # %% [markdown] id="I0lSH6JWPCVh" outputId="a243f78a-7908-4342-b754-89bfd768da17"
 # # Modélisation
-# 
+#
 # Nous passons maintenant à la partie modélisation. Pour cela, nous utilisons
 # les données que nous avons manipulées jusqu'ici. Nous commençons d'abord par
 # du **Features Engineering** en créant une matrice *TF-IDF* pour entraîner
 # les modèles.
 #
 # Les deux modèles que nous avons choisis sont **Random Forest Classifier** et
-# **SVC**. Ils vont nous permettre de comparer les résultats et les scores 
-# obtenus. 
+# **SVC**. Ils vont nous permettre de comparer les résultats et les scores
+# obtenus.
 #
 # À chaque fois, nous nous effectuons une **validation croisée** pour déterminer
 # quels sont les meilleurs hyperparamètres, avant d'entaîner les modèles.
 #
-# Enfin, nous finissons par utiliser les modèles pour prédire à quel bord 
-# politique appartiennent les députés LREM.  
+# Enfin, nous finissons par utiliser les modèles pour prédire à quel bord
+# politique appartiennent les députés LREM.
 
 
 # %%
