@@ -329,6 +329,7 @@ Image(filename='Tweets_Frequence.png')
 # Mettre `y_train` au bon format
 y_train = y_train.values.ravel()
 
+
 # %% [markdown] id="p0ZAydeEPCVc"
 # ## Analyse descriptive des données
 #
@@ -561,3 +562,4 @@ print("Le F1-score du test est " + str(svc.score(X_test, y_test)))
 # Nous avons essayé d'appliquer les classificateurs entrainés aux interventions
 # du groupe La République En Marche. À cause d'une erreur qui nous a résisté
 # trop longtemps, cet tentative n'a pas pu aboutir.
+

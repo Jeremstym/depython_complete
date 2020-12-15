@@ -220,6 +220,8 @@ df_spacy["interventions"] = df_spacy.interventions.apply(lambda x: sp(x))
 df_spacy["interventions"] = df_spacy.interventions.apply(
     lambda tokens: [token.lemma_ for token in tokens]
 )
+
+# Copie du dataframe, utilisée dans la partie analyse descriptive
 df_zipf = df_spacy.copy()
 ```
 ```python
@@ -350,11 +352,18 @@ axs[1].set_title('Pour la droite :')
 # On a fait le même travail dans visualisation_twitter.py sur une base de donnée twitter scrappé avec notre fichier twitter.py à titre de comparaison
 from IPython.display import Image
 Image(filename='Tweets_Frequence.png')
+
+
+# Mettre `y_train` au bon format
+y_train = y_train.values.ravel()
 ```
 
 
+<!-- #region id="p0ZAydeEPCVc" -->
+## Analyse descriptive des données
 
 Nous allons maintenant visualiser les mots les plus utilisés de manière plus intuitive. À l'aide du module **wordcloud**, il est possible de visualiser quels sont les mots les plus utilisés par un député.
+<!-- #endregion -->
 
 ```python
 # Création d'un stopwords à partir d'un fichier txt. téléchargé et complété.
@@ -416,9 +425,7 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.svm import SVC
 from sklearn.metrics import classification_report
 
-LREM_df = pd.read_csv(
-    "https://raw.githubusercontent.com/rturquier/depythons/main/Stock_csv/LREM2_inter.csv"
-)
+
 
 
 ```
@@ -499,19 +506,22 @@ param_grid_rfc = {
     "criterion": ["gini", "entropy"],
 }
 
-CV_rfc = GridSearchCV(estimator=RandomForestClassifier(), param_grid=param_grid, cv=5)
+CV_rfc = GridSearchCV(
+    estimator=RandomForestClassifier(),
+    param_grid=param_grid_rfc,
+    cv=5
+)
+
 
 CV_rfc.fit(X_train, y_train)
 opti_param_rfc = CV_rfc.best_params_
 
-"""
-La fonction met du temps à s'exécuter. Voici les paramètres qu'elle trouve
-{'criterion': 'gini',
- 'max_depth': 6,
- 'max_features': 'sqrt',
- 'n_estimators': 200}
-Pas la peine de la relancer à chaque fois.
-"""
+# La fonction met du temps à s'exécuter. Voici les paramètres qu'elle trouve :
+# {'criterion': 'gini',
+#  'max_depth': 6,
+#  'max_features': 'sqrt',
+#  'n_estimators': 200}
+# Pas la peine de la relancer à chaque fois.
 ```
 
 ```python
@@ -530,12 +540,13 @@ opti_param_svc = CV_svc.best_params_
 print("Les meilleurs hyperparamètres sont " + str(opti_param_svc))
 ```
 
+Pour le modèle SVC, on trouve les hyperparamètres suivants :
+`criterion="gini", max_depth=6, max_features="sqrt", n_estimators=200`
+
+
 Nous allons maintenant entraîner les deux modèles successivment.
 
 ```python
-# Mettre `y_train` au bon format
-y_train = y_train.values.ravel()
-
 # Entrainement de la forêt aléatoire
 clf = RandomForestClassifier(
     criterion="gini", max_depth=6, max_features="sqrt", n_estimators=200
@@ -574,7 +585,7 @@ leur erreur de généralisation.
 y_pred_clf = clf.predict(X_test)
 
 print(classification_report(y_test, y_pred_clf))
-print("Le score du test est " + str(clf.score(X_test, y_test_clf)))
+print("Le F1-score du test est " + str(clf.score(X_test, y_test)))
 ```
 
 ```python jupyter={"outputs_hidden": true}
@@ -582,47 +593,12 @@ print("Le score du test est " + str(clf.score(X_test, y_test_clf)))
 
 y_pred_svc = svc.predict(X_test)
 print(classification_report(y_test, y_pred_svc))
-print("Le score du test est " + str(svc.score(X_test, y_test_svc)))
+print("Le F1-score du test est " + str(svc.score(X_test, y_test)))
+
+
 ```
 
-Le
+Nous avons essayé d'appliquer les classificateurs entrainés aux interventions
+du groupe La République En Marche. À cause d'une erreur qui nous a résisté
+trop longtemps, cet tentative n'a pas pu aboutir.
 
-
-
-##
-Nous regardons maintenant quel classfication effectue le modèle sur le parti LREM.
-Premièrement, nous transformons d'abord la matrice LREM.
-
-```python jupyter={"outputs_hidden": true}
-final_pipe = make_pipeline(CountVectorizer(vocabulary=super_liste), TfidfTransformer())
-
-tf_idf_LREM = final_pipe.fit_transform(
-    LREM_df["interventions"].values.astype("U")
-).toarray()
-
-LREM_features = pd.DataFrame(tf_idf_LREM)
-```
-
-```python
-LREM_pred = clf.predict(LREM_features)
-print(collections.Counter(LREM_pred))
-print(
-    "Le modèle RFC classe",
-    str(collections.Counter(LREM_pred)[1]),
-    "députés à droite et",
-    str(collections.Counter(LREM_pred)[0]),
-    "à gauche",
-)
-```
-
-```python
-LREM_pred2 = svc.predict(LREM_features)
-print(collections.Counter(LREM_pred2))
-print(
-    "Le modèle SVC classe",
-    str(collections.Counter(LREM_pred2)[1]),
-    "députés à droite et",
-    str(collections.Counter(LREM_pred2)[0]),
-    "à gauche",
-)
-```
