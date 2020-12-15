@@ -20,9 +20,16 @@
 # %% [markdown] id="AyDgk7w54dfJ"
 # #### Projet informatique - Python pour le data scientist
 # ##### Jérémie Stym-Popper, Luca Teodorescu, Rémi Turquier
-# # _La République en Marche_ est-elle de gauche ou de droite ?
-#
-# [Titre provisoire]
+# # Peut-on prédire l'appartenance politique selon le discours des députés ?
+# 
+
+# Ce projet consiste à effectuer du *Natural Language Processing* sur le discours que tiennent les députés parlementaires.
+# 
+# L'objectif principal consiste à entraîner un ou plusieurs modèles sur les députés appartenant à des partis étant traditionnellement reconnus de gauche (PS, LFI) et de droite (LR), puis essayer de prédire cette classfication sur le parti LREM qui se situe entre les deux bords. 
+# 
+# Nous avons prélevé les textes depuis deux sources : une première manière à consister en utilisant les interventions des députés à l'Assemblée (nous avons utiliser l'API venant du site [nosdeputes.fr](https://www.nosdeputes.fr/), puis scrappé les discours d'un député ciblé. Nous avons également scrappé Twitter pour retrouver les tweets des députés et diversifier ainsi nos sources.
+# 
+# Dans ce Notebook, nous utilisons à plusieurs reprises des modules que nous avons codés par ailleurs et déposés sur Github. Ces modules utilisent des packages comme **wordcloud**, **unidecode**, **warnings** et **fuzzywuzzy** qu'il faudrait préalablement installer pour pouvoir tout lire.
 
 # %% id="u6CCHVOX7XDx"
 # Imports
