@@ -26,7 +26,7 @@ jupyter:
 
 Ce projet consiste à effectuer du *Natural Language Processing* sur le discours que tiennent les députés parlementaires.
 
-L'objectif principal consiste à entraîner un ou plusieurs modèles sur les députés appartenant à des partis étant traditionnellement reconnus de gauche (PS, LFI) et de droite (LR), puis essayer de prédire cette classfication sur le parti LREM qui se situe entre les deux bords. 
+L'objectif principal consiste à entraîner un ou plusieurs modèles sur les députés appartenant à des partis étant traditionnellement reconnus de gauche (PS, LFI) et de droite (LR), puis essayer de prédire cette classfication sur le parti LREM qui se situe entre les deux bords.
 
 Nous avons prélevé les textes depuis deux sources : une première manière à consister en utilisant les interventions des députés à l'Assemblée (nous avons utiliser l'API venant du site [nosdeputes.fr](https://www.nosdeputes.fr/), puis scrappé les discours d'un député ciblé. Nous avons également scrappé Twitter pour retrouver les tweets des députés et diversifier ainsi nos sources.
 
@@ -235,11 +235,13 @@ print(
 ```
 On essaye desormais de faire une analyse des fréquences des mots selon le catégorie droite/gauche et vérifier une potentielle loi de Zipf
 Dans un premier temps sans enlever les stopwords
-df_spacy
-df_zipf
+
+
+```python
 import collections
 import re
 import matplotlib.pyplot as plt
+```
 
 ```python
 # On sépare en deux dataframe une pour chaque catégorie et on fait de même avec la dataframe spacy travaillée juste avant
@@ -571,7 +573,11 @@ print(classification_report(y_test, y_pred_svc))
 print("Le score du test est " + str(svc.score(X_test, y_test_svc)))
 ```
 
-#### Quatrième étape
+Le
+
+
+
+##
 Nous regardons maintenant quel classfication effectue le modèle sur le parti LREM.
 Premièrement, nous transformons d'abord la matrice LREM.
 
