@@ -212,11 +212,13 @@ import collections
 import re
 import matplotlib.pyplot as plt
 
-# On sépare en deux dataframe une pour chaque catégorie
+# %%
+# On sépare en deux dataframe une pour chaque catégorie et on fait de même avec la dataframe spacy travaillée juste avant
 df_zipf_droite = df_zipf[df_collapsed["droite"]]
 df_zipf_gauche = df_zipf[df_collapsed["droite"] != True]
 df_spacy_droite = df_spacy[df_collapsed["droite"]]
 df_spacy_gauche = df_spacy[df_collapsed["droite"] != True]
+# %%
 # Dictionnaries de wordcount
 wordcount_droite = collections.defaultdict(int)
 wordcount_gauche = collections.defaultdict(int)
@@ -227,13 +229,14 @@ for inters in df_zipf_gauche["interventions"]:
     for word in inters:
         wordcount_gauche[word] += 1
 
-# On va afficher les 20 mots les plus populaires pour la gauche
+#%%
+# On va afficher les 20 mots les plus populaires pour la gauche en comptant les stopwords
 mc = sorted(wordcount_gauche.items(), key=lambda k_v: k_v[1], reverse=True)[:20]
 mc = dict(mc)
 names = list(mc.keys())
 values = list(mc.values())
 plt.bar(range(len(mc)),values,tick_label=names)
-
+# %%
 # Même chose pour la droite
 mc = sorted(wordcount_droite.items(), key=lambda k_v: k_v[1], reverse=True)[:20]
 mc = dict(mc)
@@ -241,6 +244,7 @@ names = list(mc.keys())
 values = list(mc.values())
 plt.bar(range(len(mc)),values,tick_label=names)
 
+# %%
 # On va maintenant voir sans les stopwords
 wordcount_droite = collections.defaultdict(int)
 wordcount_gauche = collections.defaultdict(int)
@@ -255,13 +259,15 @@ for inters in df_spacy_gauche["interventions"]:
         if word not in stop_words:
             wordcount_gauche[word] += 1
 
-# On va afficher les 5 mots les plus populaires pour la gauche
+# %%
+# On va afficher les 10 mots les plus populaires pour la gauche
 mc = sorted(wordcount_gauche.items(), key=lambda k_v: k_v[1], reverse=True)[:10]
 mc = dict(mc)
 names = list(mc.keys())
 values = list(mc.values())
 plt.bar(range(len(mc)),values,tick_label=names)
 
+# %%
 # Même chose pour la droite
 mc = sorted(wordcount_droite.items(), key=lambda k_v: k_v[1], reverse=True)[:10]
 mc = dict(mc)
