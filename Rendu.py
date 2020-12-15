@@ -212,11 +212,13 @@ import collections
 import re
 import matplotlib.pyplot as plt
 
-# On sépare en deux dataframe une pour chaque catégorie
+# %%
+# On sépare en deux dataframe une pour chaque catégorie et on fait de même avec la dataframe spacy travaillée juste avant
 df_zipf_droite = df_zipf[df_collapsed["droite"]]
 df_zipf_gauche = df_zipf[df_collapsed["droite"] != True]
 df_spacy_droite = df_spacy[df_collapsed["droite"]]
 df_spacy_gauche = df_spacy[df_collapsed["droite"] != True]
+# %%
 # Dictionnaries de wordcount
 wordcount_droite = collections.defaultdict(int)
 wordcount_gauche = collections.defaultdict(int)
@@ -227,20 +229,23 @@ for inters in df_zipf_gauche["interventions"]:
     for word in inters:
         wordcount_gauche[word] += 1
 
-# On va afficher les 20 mots les plus populaires pour la gauche
-mc = sorted(wordcount_gauche.items(), key=lambda k_v: k_v[1], reverse=True)[:20]
-mc = dict(mc)
-names = list(mc.keys())
-values = list(mc.values())
-plt.bar(range(len(mc)),values,tick_label=names)
-
-# Même chose pour la droite
-mc = sorted(wordcount_droite.items(), key=lambda k_v: k_v[1], reverse=True)[:20]
-mc = dict(mc)
-names = list(mc.keys())
-values = list(mc.values())
-plt.bar(range(len(mc)),values,tick_label=names)
-
+#%%
+# On va afficher les 20 mots les plus populaires pour la gauche et la droite en comptant les stopwords
+fig, axs = plt.subplots(2, 1, figsize=(15, 10))
+fig.suptitle("Fréquences d'utilisation des mots dans les allocutions pour chaque bords politiques")
+mcg = sorted(wordcount_gauche.items(), key=lambda k_v: k_v[1], reverse=True)[:20]
+mcg = dict(mcg)
+namesg = list(mcg.keys())
+valuesg = list(mcg.values())
+axs[0].bar(range(len(mcg)),valuesg,tick_label=namesg, color='red')
+axs[0].set_title('Pour la gauche')
+mcd = sorted(wordcount_droite.items(), key=lambda k_v: k_v[1], reverse=True)[:20]
+mcd = dict(mcd)
+namesd = list(mcd.keys())
+valuesd = list(mcd.values())
+axs[1].bar(range(len(mcd)),valuesd,tick_label=namesd, color='blue')
+axs[1].set_title('Pour la droite :')
+# %%
 # On va maintenant voir sans les stopwords
 wordcount_droite = collections.defaultdict(int)
 wordcount_gauche = collections.defaultdict(int)
@@ -255,19 +260,22 @@ for inters in df_spacy_gauche["interventions"]:
         if word not in stop_words:
             wordcount_gauche[word] += 1
 
-# On va afficher les 5 mots les plus populaires pour la gauche
-mc = sorted(wordcount_gauche.items(), key=lambda k_v: k_v[1], reverse=True)[:10]
-mc = dict(mc)
-names = list(mc.keys())
-values = list(mc.values())
-plt.bar(range(len(mc)),values,tick_label=names)
-
-# Même chose pour la droite
-mc = sorted(wordcount_droite.items(), key=lambda k_v: k_v[1], reverse=True)[:10]
-mc = dict(mc)
-names = list(mc.keys())
-values = list(mc.values())
-plt.bar(range(len(mc)),values,tick_label=names)
+# %%
+# On va afficher les 10 mots les plus populaires pour la gauche et la droite
+fig, axs = plt.subplots(2, 1, figsize=(20, 10))
+fig.suptitle("Fréquences d'utilisation des mots dans les allocutions pour chaque bords politiques sans stopwords,")
+mcg = sorted(wordcount_gauche.items(), key=lambda k_v: k_v[1], reverse=True)[:20]
+mcg = dict(mcg)
+namesg = list(mcg.keys())
+valuesg = list(mcg.values())
+axs[0].bar(range(len(mcg)),valuesg,tick_label=namesg, color='red')
+axs[0].set_title('Pour la gauche')
+mcd = sorted(wordcount_droite.items(), key=lambda k_v: k_v[1], reverse=True)[:20]
+mcd = dict(mcd)
+namesd = list(mcd.keys())
+valuesd = list(mcd.values())
+axs[1].bar(range(len(mcd)),valuesd,tick_label=namesd, color='blue')
+axs[1].set_title('Pour la droite :')
 
 # %% [markdown]
 # Maintenant que le traitement préparatoire des données est terminé, nous
